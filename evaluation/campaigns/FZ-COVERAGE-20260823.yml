@@ -419,6 +419,18 @@ items:
     coverageTargets:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
+  - id: RCA-PRIVATE-VISIBILITY-011
+    title: Class-local UDT array lifecycle and event boundaries
+    status: queued
+    priority: 3
+    focus: クラス内UDT配列のPreserve・Erase・ByRefとEvent可視性
+    sourceReview:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
   - id: RCA-PRIVATE-VISIBILITY-009
     title: Class-local UDT array and event metadata
     status: queued

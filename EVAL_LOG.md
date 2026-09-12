@@ -900,12 +900,13 @@
 | EV-00997 | FZ-COVERAGE-20260823 | bug-found |  | クラスモジュール内Private UDTを返すPublic Function |
 | EV-00998 | FZ-COVERAGE-20260823 | bug-found |  | クラス内Private UDTのPrivate Property境界 |
 | EV-00999 | FZ-COVERAGE-20260823 | bug-found |  | クラス内Private UDT固定配列の要素初期化 |
+| EV-01000 | FZ-COVERAGE-20260823 | bug-found |  | クラス内Private UDT動的配列のReDim後要素アクセス |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 6 |
+| bug-found | 7 |
 | fixed | 405 |
 | in-progress | 3 |
 | known-limit | 5 |
@@ -919,4 +920,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| RCA-PRIVATE-VISIBILITY-010 | 3 | queued | クラス内UDT動的配列・Event引数の型メタデータ | yes |
+| RCA-PRIVATE-VISIBILITY-011 | 3 | queued | クラス内UDT配列のPreserve・Erase・ByRefとEvent可視性 | yes |
