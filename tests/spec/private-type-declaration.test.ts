@@ -368,5 +368,50 @@ End Function`);
     assert.strictEqual(ev.callProcedure('RunClassLifecycleUdt', []),
         'redim=0;set1=0;preserve=0;erase=0;rebuild-redim=0;rebuild-set=0',
         'Class-local Private UDT array lifecycle works');
-    console.log('[PASS] Class-local Private UDT array lifecycle works');
+console.log('[PASS] Class-local Private UDT array lifecycle works');
+}
+
+// Test 16: Public UDTの修飾名と裸名はByRef配列で同一視するが、所有者の異なる同名型は拒否する
+{
+    const ev = evalVBAModules([
+        {
+            name: 'Producer',
+            code: String.raw`Option Explicit
+Public Type RecordT
+    Id As Long
+End Type
+Public Sub Sum(ByRef values() As Producer.RecordT)
+    values(0).Id = values(0).Id + 1
+End Sub`,
+        },
+        {
+            name: 'Other',
+            code: String.raw`Option Explicit
+Public Type RecordT
+    Id As Long
+End Type`,
+        },
+        {
+            name: 'Consumer',
+            code: String.raw`Option Explicit
+Public Function QualifiedArrayByRef() As Long
+    Dim values() As RecordT
+    ReDim values(0 To 0)
+    values(0).Id = 41
+    Producer.Sum values
+    QualifiedArrayByRef = values(0).Id
+End Function
+Public Function WrongOwnerArrayByRef() As Long
+    Dim values() As Other.RecordT
+    ReDim values(0 To 0)
+    Producer.Sum values
+    WrongOwnerArrayByRef = values(0).Id
+End Function`,
+        },
+    ]);
+    assert.strictEqual(ev.callProcedure('QualifiedArrayByRef', []), 42,
+        'qualified and bare Public UDT array names share ByRef identity');
+    assert.throws(() => ev.callProcedure('WrongOwnerArrayByRef', []), /Type mismatch/,
+        'same-named UDTs from different modules remain distinct');
+    console.log('[PASS] Qualified/bare Public UDT array identity and owner separation');
 }

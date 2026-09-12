@@ -1059,6 +1059,7 @@ export class Evaluator {
     private validateArrayParameterContainer(
         value: any,
         param: ProcedureDeclaration['parameters'][number],
+        ownerModule?: string,
     ): void {
         if (!param.isArray || value === vbaMissing) return;
         if (!Array.isArray(value)) {
@@ -1075,7 +1076,7 @@ export class Evaluator {
             (value as any).__vbaElementTypeName__ ??
             (value as any).__vbaElementObjectTypeName__ ??
             (value as any).__vbaArrayReturnType__)?.toLowerCase?.();
-        if (actual && actual !== expected) {
+        if (actual && !this.isSameUdtType(actual, expected, ownerModule)) {
             this.throwVbaError(VbaErrorCode.TYPE_MISMATCH, 'Type mismatch');
         }
         if (!actual) {
@@ -1090,6 +1091,25 @@ export class Evaluator {
         } else if (expected === 'object') {
             this.validateObjectArrayContents(value, expected);
         }
+    }
+
+    /** Compare UDT array element names by semantic owner, not spelling. */
+    private isSameUdtType(actual: string, expected: string, ownerModule?: string): boolean {
+        if (actual === expected) return true;
+        const owner = ownerModule?.toLowerCase();
+        const actualParts = actual.split('.');
+        const expectedParts = expected.split('.');
+        const actualBare = actualParts.at(-1);
+        const expectedBare = expectedParts.at(-1);
+        if (!actualBare || actualBare !== expectedBare) return false;
+        const actualOwner = actualParts.length > 1 ? actualParts.at(-2) : undefined;
+        const expectedOwner = expectedParts.length > 1 ? expectedParts.at(-2) : undefined;
+        if (actualOwner && expectedOwner) return actualOwner === expectedOwner;
+        // An unqualified parameter name is resolved in its declaring module.
+        // A qualified runtime name is equivalent only when that owner matches.
+        if (owner && actualOwner && actualOwner === owner) return true;
+        if (owner && expectedOwner && expectedOwner === owner) return true;
+        return false;
     }
 
     /** Erased arrays retain their type but cannot be indexed until ReDim. */
@@ -1182,7 +1202,7 @@ export class Evaluator {
             else if (param.defaultValue) argValue = this.evaluateExpression(param.defaultValue);
             else argValue = vbaMissing;
 
-            this.validateArrayParameterContainer(argValue, param);
+            this.validateArrayParameterContainer(argValue, param, proc.moduleName);
 
             argValue = this.normalizeObjectArgumentValue(argValue, param);
 
