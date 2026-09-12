@@ -5559,7 +5559,16 @@ export class Evaluator {
     }
 
     private evaluateTypeDeclaration(stmt: TypeDeclaration) {
-        this.env.setType(stmt.name, stmt.members);
+        // Private UDTs belong to their declaring module.  Registering them in
+        // the shared environment makes a later module resolve the bare type
+        // name, bypassing VBA's module visibility boundary.  Public/Friend
+        // types remain in the shared environment for cross-module lookup.
+        const scope = (stmt as TypeDeclaration & { scope?: string }).scope;
+        if (scope === 'private' && this.currentSourceModule) {
+            this.getOrCreateModuleEnv(this.currentSourceModule).setType(stmt.name, stmt.members);
+        } else {
+            this.env.setType(stmt.name, stmt.members);
+        }
     }
 
     private evaluateOptionCompareStatement(stmt: OptionCompareStatement) {

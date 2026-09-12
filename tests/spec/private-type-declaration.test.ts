@@ -1,4 +1,4 @@
-import { evalVBASingle, assert } from '../../test-libs/test-runner';
+import { evalVBASingle, evalVBAModules, assert } from '../../test-libs/test-runner';
 
 function evalVBA(code: string): any {
     return evalVBASingle(code);
@@ -111,3 +111,37 @@ End Function
 }
 
 console.log('\n✅ private-type-declaration: 全テスト通過');
+
+// Test 6: Private Type は宣言元モジュールの外から非修飾参照できない
+{
+    let threw = false;
+    try {
+        const ev = evalVBAModules([
+            {
+                name: 'Producer',
+                code: String.raw`Option Explicit
+Private Type T
+    X As Long
+End Type
+Public Sub Mutate(ByRef value As T)
+    value.X = 9
+End Sub`,
+            },
+            {
+                name: 'Caller',
+                code: String.raw`Option Explicit
+Public Function RunProbe() As Long
+    Dim value As T
+    value.X = 3
+    Producer.Mutate value
+    RunProbe = value.X
+End Function`,
+            },
+        ]);
+        ev.callProcedure('RunProbe', []);
+    } catch {
+        threw = true;
+    }
+    assert.ok(threw, 'Private Type: cross-module bare reference is rejected');
+    console.log('[PASS] Private Type: cross-module bare reference is rejected');
+}
