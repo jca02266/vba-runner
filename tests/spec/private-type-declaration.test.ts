@@ -292,3 +292,25 @@ End Function`);
         'Class-local Private UDT fixed array works');
     console.log('[PASS] Class-local Private UDT fixed array works');
 }
+
+// Test 13: クラス内Private UDT動的配列のReDim
+{
+    const ev = evalVBA(String.raw`Class DynamicHolder
+Private Type TItem
+    Value As Long
+End Type
+Private items() As TItem
+Public Function Probe() As Long
+    ReDim items(0 To 1)
+    items(0).Value = 21
+    Probe = items(0).Value * 2
+End Function
+End Class
+Public Function RunClassDynamicUdt() As Long
+    Dim instance As New DynamicHolder
+    RunClassDynamicUdt = instance.Probe
+End Function`);
+    assert.strictEqual(ev.callProcedure('RunClassDynamicUdt', []), 42,
+        'Class-local Private UDT dynamic array ReDim works');
+    console.log('[PASS] Class-local Private UDT dynamic array ReDim works');
+}
