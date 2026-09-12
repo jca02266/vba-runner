@@ -562,3 +562,16 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
+  - id: RCA-PRIVATE-VISIBILITY-021
+    title: Qualified UDT ByRef array identity
+    status: queued
+    priority: 2
+    focus: Module.Type修飾UDT配列をByRef引数へ渡す型識別
+    priorCauseKey: type-registry-lacks-qualified-owner
+    sourceReview:
+      - src/engine/evaluator.ts
+      - src/engine/argument-contract.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/argument-contract.ts
