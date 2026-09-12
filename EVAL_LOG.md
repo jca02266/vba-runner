@@ -912,13 +912,14 @@
 | EV-01009 | FZ-COVERAGE-20260823 | fixed | 1 | 別モジュールからPublic手続きのPrivate UDT引数を参照する境界 |
 | EV-01010 | FZ-COVERAGE-20260823 | verified-no-bug |  | Private UDT戻り値のVariant消費境界 |
 | EV-01011 | FZ-COVERAGE-20260823 | fixed |  | Module.Type修飾UDT配列をByRef引数へ渡す型識別 |
+| EV-01012 | RCA-FOLLOWUP | fixed |  | Public Module.Type UDT配列のFunction戻り値代入 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
 | bug-found | 6 |
-| fixed | 415 |
+| fixed | 416 |
 | in-progress | 2 |
 | known-limit | 5 |
 | needs-excel-probe | 1 |

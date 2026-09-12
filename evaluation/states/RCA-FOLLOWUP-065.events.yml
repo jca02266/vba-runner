@@ -1,0 +1,9 @@
+- candidateId: RCA-FOLLOWUP-065
+  evaluationId: EV-01012
+  status: bug-found
+  occurredAt: '2026-09-12T10:23:41.259Z'
+- candidateId: RCA-FOLLOWUP-065
+  evaluationId: EV-01012
+  status: fixed
+  fromStatus: bug-found
+  occurredAt: '2026-09-12T10:26:01.751Z'
