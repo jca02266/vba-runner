@@ -419,3 +419,15 @@ items:
     coverageTargets:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
+  - id: RCA-PRIVATE-VISIBILITY-009
+    title: Class-local UDT array and event metadata
+    status: queued
+    priority: 3
+    focus: クラス内UDT配列・Eventの型メタデータ
+    sourceReview:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
