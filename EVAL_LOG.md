@@ -908,6 +908,7 @@
 | EV-01005 | FZ-COVERAGE-20260823 | bug-found |  | WithEventsハンドラー候補へのProperty Get誤登録 |
 | EV-01006 | FZ-COVERAGE-20260823 | bug-found |  | 標準モジュールSubのWithEventsハンドラー誤配線 |
 | EV-01007 | FZ-COVERAGE-20260823 | bug-found |  | 別標準モジュールPrivate SubのWithEvents誤配線 |
+| EV-01008 | FZ-COVERAGE-20260823 | verified-no-bug | 1 | Interface型WithEventsのイベント配線 |
 
 ## 状態集計
 
@@ -919,7 +920,7 @@
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
-| verified-no-bug | 474 |
+| verified-no-bug | 475 |
 
 横展開未解決経路: 619、実Excel待ち評価: 1
 
@@ -927,4 +928,4 @@
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| RCA-PRIVATE-VISIBILITY-018 | 3 | queued | Interface実装と拡張モジュールのEvent配線 | yes |
+| (none) | | | | |

@@ -1,0 +1,9 @@
+- candidateId: RCA-PRIVATE-VISIBILITY-018
+  evaluationId: EV-01008
+  status: in-progress
+  occurredAt: '2026-09-12T08:58:29.257Z'
+- candidateId: RCA-PRIVATE-VISIBILITY-018
+  evaluationId: EV-01008
+  status: verified-no-bug
+  fromStatus: in-progress
+  occurredAt: '2026-09-12T08:59:19.147Z'
