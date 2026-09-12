@@ -270,4 +270,46 @@ End Function`,
     console.log('[PASS] WithEvents ignores Property Get candidates');
 }
 
+// A same-named Sub in a standard module is not owned by the WithEvents class
+// and must not be connected implicitly.
+{
+    const ev = evalVBAModules([
+        {
+            name: 'Publisher2',
+            parseAsClass: 'Publisher2',
+            code: String.raw`Option Explicit
+Public Event StatusChanged(ByVal value As Long)
+Public Sub Fire()
+    RaiseEvent StatusChanged(7)
+End Sub`,
+        },
+        {
+            name: 'Listener2',
+            parseAsClass: 'Listener2',
+            code: String.raw`Option Explicit
+Private WithEvents Source As Publisher2
+Public Sub Init()
+    Set Source = New Publisher2
+    Source.Fire
+End Sub`,
+        },
+        {
+            name: 'Module2',
+            code: String.raw`Option Explicit
+Public fired As Long
+Public Sub Source_StatusChanged(ByVal value As Long)
+    fired = fired + 1
+End Sub
+Public Function RunModuleCandidate() As Long
+    Dim listener As New Listener2
+    listener.Init
+    RunModuleCandidate = fired
+End Function`,
+        },
+    ]);
+    assert.strictEqual(ev.callProcedure('RunModuleCandidate', []), 0,
+        'standard-module event Sub is not implicitly connected');
+    console.log('[PASS] WithEvents ignores standard-module candidates');
+}
+
 console.log('\n✅ Event & RaiseEvent: 全テスト通過');

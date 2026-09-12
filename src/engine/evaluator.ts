@@ -7142,7 +7142,11 @@ export class Evaluator {
                     (eventHandler as any).__vbaEventByRef__ = true;
                 }
             }
-            if (!eventHandler) {
+            // Top-level WithEvents declarations have no owning class in the
+            // evaluator, so retain their legacy module callback behavior. A
+            // class-owned WithEvents field must not fall back to unrelated
+            // standard-module procedures.
+            if (!eventHandler && !classDef) {
                 const handler = this.env.getProcedure(handlerName);
                 if (handler && !handler.isFunction && !handler.isProperty) {
                     eventHandler = (...args: any[]) => {
