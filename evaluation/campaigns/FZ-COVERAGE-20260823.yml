@@ -624,3 +624,15 @@ items:
       - tests/spec/builtin-numeric.test.ts
     coverageTargets:
       - src/engine/builtins.ts
+  - id: FZ-COVERAGE-20260823-031
+    title: Qualified UDT array TypeName display
+    status: queued
+    priority: 3
+    focus: 修飾UDT配列とFunction戻り値のTypeName表記をExcelと照合する
+    priorCauseKey: qualified-udt-typename-normalization
+    sourceReview:
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/excel/queue/ExcelQueueVerification.bas

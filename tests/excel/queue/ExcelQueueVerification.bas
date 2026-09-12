@@ -95,6 +95,7 @@ Public Sub RunExcelQueueVerification()
     VerifyOnGoToNull
     VerifyNullNumericBoundaries
     VerifyNullDeclarationBoundaries
+    VerifyQualifiedUdtArrayTypeName
     VerifyCDecBoundaries
     VerifyFormatRounding
     VerifySeekBoundaries root & Application.PathSeparator & "XL-024-seek.dat"
@@ -176,6 +177,22 @@ Public Sub RunExcelQueueVerification()
     EmitResult "QUEUE_SOURCE_SHA256=" & QUEUE_SOURCE_SHA256
     EmitResult "QUEUE_COMPLETE=True"
     EndResult
+End Sub
+
+Private Sub VerifyQualifiedUdtArrayTypeName()
+    Dim values() As ExcelQueueTypeProducer.RecordT
+    Dim returned() As ExcelQueueTypeProducer.RecordT
+    Dim errNo As Long
+    On Error Resume Next
+    Err.Clear
+    ReDim values(0 To 0)
+    values(0).Id = 7
+    returned = ExcelQueueTypeProducer.MakeRecords()
+    errNo = Err.Number
+    On Error GoTo 0
+    EmitResult "XL-269 TYPE=" & TypeName(values) & _
+        " VAR=" & CStr(VarType(values)) & _
+        " RETURN=" & TypeName(returned) & " ERR=" & CStr(errNo)
 End Sub
 
 Private Sub VerifyRndSeed()
