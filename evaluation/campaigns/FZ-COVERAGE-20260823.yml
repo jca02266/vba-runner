@@ -658,3 +658,14 @@ items:
       - spec/MS-VBAL.txt
     coverageTargets:
       - src/engine/builtins.ts
+  - id: FZ-COVERAGE-20260823-034
+    title: Join delimiter null boundary
+    status: queued
+    priority: 3
+    focus: JoinのDelimiterにNull・Empty・空配列を渡す境界
+    priorCauseKey: join-delimiter-null-propagation
+    sourceReview:
+      - src/engine/builtins.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/builtins.ts
