@@ -192,3 +192,53 @@ End Function`,
         'Standard module Public Function may return a Private UDT');
     console.log('[PASS] Standard module Public Function may return a Private UDT');
 }
+
+// Test 9: クラス内Private Typeをクラス手続きから解決する
+{
+    const ev = evalVBA(String.raw`Class Holder
+Option Explicit
+Private Type Hidden
+    Value As Long
+End Type
+Public Function ReadValue() As Long
+    Dim value As Hidden
+    value.Value = 42
+    ReadValue = value.Value
+End Function
+End Class
+Public Function RunClassUdt() As Long
+    Dim holder As New Holder
+    RunClassUdt = holder.ReadValue()
+End Function`);
+    assert.strictEqual(ev.callProcedure('RunClassUdt', []), 42,
+        'Class-local Private Type resolves in class procedure');
+    console.log('[PASS] Class-local Private Type resolves in class procedure');
+}
+
+// Test 10: クラスPublic FunctionのPrivate UDT戻り値は静的に拒否する
+{
+    const ev = evalVBA(String.raw`Class Holder
+Private Type Hidden
+    Value As Long
+End Type
+Public Function MakeHidden() As Hidden
+    Dim value As Hidden
+    value.Value = 42
+    MakeHidden = value
+End Function
+End Class
+Public Function RunInvalidClassReturn() As Long
+    Dim holder As New Holder
+    RunInvalidClassReturn = holder.MakeHidden().Value
+End Function`);
+    let threw = false;
+    try {
+        ev.callProcedure('RunInvalidClassReturn', []);
+    } catch (error: any) {
+        threw = true;
+        assert.ok(/Public class function.*Private UDT|Compile error/.test(String(error?.message)),
+            'class Public Function Private UDT return is rejected');
+    }
+    assert.ok(threw, 'class Public Function Private UDT return is rejected');
+    console.log('[PASS] Class Public Function Private UDT return is rejected');
+}

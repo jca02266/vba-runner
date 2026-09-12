@@ -2238,6 +2238,7 @@ export class Evaluator {
     private precheckProc(proc: ProcedureDeclaration): void {
         try {
             this.precheckOptionExplicitProc(proc);
+            this.precheckClassPrivateUdtReturn(proc);
             const findings = this.collectPrecheckFindings(proc);
             if (findings.nextControlVariable) {
                 const mismatch = findings.nextControlVariable;
@@ -2321,6 +2322,26 @@ export class Evaluator {
                 throw formatted;
             }
             throw e;
+        }
+    }
+
+    /** MS-VBAL 5.3.1.1.6: a public class procedure cannot expose a
+     * class-private UDT as its function result type. */
+    private precheckClassPrivateUdtReturn(proc: ProcedureDeclaration): void {
+        if (!proc.isFunction || !proc.returnType || proc.scope === 'private') return;
+        const owner = proc.moduleName ? this.classDefinitions.get(proc.moduleName.toLowerCase()) : undefined;
+        if (!owner) return;
+        const typeName = proc.returnType.split('.').at(-1)?.toLowerCase();
+        if (!typeName) return;
+        const privateType = owner.body.some((stmt) => {
+            if (stmt.type !== 'TypeDeclaration') return false;
+            const typeDecl = stmt as TypeDeclaration & { scope?: string };
+            return typeDecl.name.toLowerCase() === typeName && typeDecl.scope === 'private';
+        });
+        if (privateType) {
+            this.throwCompileError(VbaErrorCode.TYPE_MISMATCH,
+                `Public class function '${proc.name.name}' cannot return a Private UDT`,
+                proc.name.loc?.start.line, proc.moduleName);
         }
     }
 
@@ -5641,6 +5662,16 @@ export class Evaluator {
             }
         }
         for (const proc of stmt.procedures) proc.moduleName = stmt.name;
+        // Class-local UDTs live in the class module namespace. Register them
+        // before any field initialization or method invocation so class
+        // procedures resolve the same declarations as module procedures.
+        const classEnv = this.getOrCreateModuleEnv(stmt.name);
+        for (const bodyStmt of stmt.body) {
+            if (bodyStmt.type === 'TypeDeclaration') {
+                const typeDecl = bodyStmt as TypeDeclaration;
+                classEnv.setType(typeDecl.name, typeDecl.members);
+            }
+        }
         this.registerClass(stmt.name, stmt);
     }
 
@@ -5665,6 +5696,15 @@ export class Evaluator {
         const moduleName = (this.executingModuleName || this.currentSourceModule || '').toLowerCase();
         const parentEnv = this.moduleEnvs.get(moduleName) ?? this.globalEnv;
         const instanceEnv = new Environment(parentEnv);
+
+        // Class-local UDTs are visible to every procedure of this instance,
+        // but must not be published through the caller's module environment.
+        for (const bodyStmt of classDef.body) {
+            if (bodyStmt.type === 'TypeDeclaration') {
+                const typeDecl = bodyStmt as TypeDeclaration;
+                instanceEnv.setType(typeDecl.name, typeDecl.members);
+            }
+        }
 
         // Bug CC: Track fixed-length string fields for enforcement on assignment
         const classFixedLengths: Record<string, number> = {};
@@ -6528,6 +6568,7 @@ export class Evaluator {
         this.executingModuleName = proc.moduleName ?? previousExecutingModule;
 
         try {
+            this.precheckProc(proc);
             // Class procedures use the same precheck contract as module
             // procedures.  This includes Option Explicit violations recorded
             // from the class body's module-level directives.

@@ -2706,6 +2706,13 @@ export class Parser {
                 // Preserve class-member visibility for cross-module checks.
                 constDecl.scope = scope;
                 body.push(constDecl);
+            } else if (inner.type === TokenType.KeywordType) {
+                // Class-local UDT declarations are part of the class
+                // namespace, not unknown tokens to skip. Preserve the
+                // visibility modifier for the evaluator's class type scope.
+                const typeDecl = this.parseTypeDeclaration() as TypeDeclaration & { scope?: typeof scope };
+                typeDecl.scope = scope ?? 'private';
+                body.push(typeDecl);
             } else if (inner.type === TokenType.KeywordStatic) {
                 this.advance(); // consume 'Static'
                 const field = this.parseDimStatement(true, true);
