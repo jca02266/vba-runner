@@ -893,16 +893,16 @@
 | EV-00990 | FZ-COVERAGE-20260823 | verified-no-bug | 1 | ネスト手続きのエラー伝播経路 |
 | EV-00991 | FZ-COVERAGE-20260823 | fixed | 1 | Privateモジュール定数の非修飾クロスモジュール参照 |
 | EV-00992 | FZ-COVERAGE-20260823 | fixed |  | Private Typeのクロスモジュール型解決 |
-| EV-00993 | FZ-COVERAGE-20260823 | bug-found |  | Module.Type修飾参照の型実体化 |
+| EV-00993 | FZ-COVERAGE-20260823 | fixed | 1 | Module.Type修飾参照の型実体化 |
 | EV-00994 | FZ-COVERAGE-20260823 | bug-found |  | Private UDTを使うPublic手続きの引数境界 |
-| EV-00995 | FZ-COVERAGE-20260823 | in-progress |  | Private UDTを返すPublic手続きの境界 |
+| EV-00995 | FZ-COVERAGE-20260823 | verified-no-bug |  | Private UDTを返すPublic手続きの境界 |
 | EV-00996 | FZ-COVERAGE-20260823 | in-progress |  | Private UDT配列を返すPublic手続きの境界 |
-| EV-00997 | FZ-COVERAGE-20260823 | bug-found |  | クラスモジュール内Private UDTを返すPublic Function |
-| EV-00998 | FZ-COVERAGE-20260823 | bug-found |  | クラス内Private UDTのPrivate Property境界 |
-| EV-00999 | FZ-COVERAGE-20260823 | bug-found |  | クラス内Private UDT固定配列の要素初期化 |
-| EV-01000 | FZ-COVERAGE-20260823 | bug-found |  | クラス内Private UDT動的配列のReDim後要素アクセス |
-| EV-01001 | FZ-COVERAGE-20260823 | bug-found |  | クラス内Private UDT配列のReDim Preserve・Erase後再利用 |
-| EV-01002 | FZ-COVERAGE-20260823 | bug-found |  | クラスPublic FunctionのPrivate UDT引数署名 |
+| EV-00997 | FZ-COVERAGE-20260823 | fixed |  | クラスモジュール内Private UDTを返すPublic Function |
+| EV-00998 | FZ-COVERAGE-20260823 | fixed |  | クラス内Private UDTのPrivate Property境界 |
+| EV-00999 | FZ-COVERAGE-20260823 | fixed |  | クラス内Private UDT固定配列の要素初期化 |
+| EV-01000 | FZ-COVERAGE-20260823 | fixed |  | クラス内Private UDT動的配列のReDim後要素アクセス |
+| EV-01001 | FZ-COVERAGE-20260823 | fixed |  | クラス内Private UDT配列のReDim Preserve・Erase後再利用 |
+| EV-01002 | FZ-COVERAGE-20260823 | fixed |  | クラスPublic FunctionのPrivate UDT引数署名 |
 | EV-01003 | FZ-COVERAGE-20260823 | bug-found |  | Event宣言とRaiseEventの引数個数不一致 |
 | EV-01004 | FZ-COVERAGE-20260823 | bug-found |  | WithEventsハンドラーのByRef・型署名不一致 |
 | EV-01005 | FZ-COVERAGE-20260823 | bug-found |  | WithEventsハンドラー候補へのProperty Get誤登録 |
@@ -910,18 +910,19 @@
 | EV-01007 | FZ-COVERAGE-20260823 | bug-found |  | 別標準モジュールPrivate SubのWithEvents誤配線 |
 | EV-01008 | FZ-COVERAGE-20260823 | verified-no-bug | 1 | Interface型WithEventsのイベント配線 |
 | EV-01009 | FZ-COVERAGE-20260823 | fixed | 1 | 別モジュールからPublic手続きのPrivate UDT引数を参照する境界 |
+| EV-01010 | FZ-COVERAGE-20260823 | verified-no-bug |  | Private UDT戻り値のVariant消費境界 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| bug-found | 13 |
-| fixed | 407 |
-| in-progress | 3 |
+| bug-found | 6 |
+| fixed | 414 |
+| in-progress | 2 |
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
-| verified-no-bug | 475 |
+| verified-no-bug | 477 |
 
 横展開未解決経路: 621、実Excel待ち評価: 1
 
