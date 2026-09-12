@@ -2,3 +2,8 @@
   evaluationId: EV-01003
   status: bug-found
   occurredAt: '2026-09-12T08:16:55.946Z'
+- candidateId: RCA-PRIVATE-VISIBILITY-013
+  evaluationId: EV-01003
+  status: fixed
+  fromStatus: bug-found
+  occurredAt: '2026-09-12T10:44:22.310Z'
