@@ -573,14 +573,15 @@ End Sub
 ' CASE: qualified_udt_array_declaration
 ' TYPE: preproc
 ' VBA: コンパイル エラー: パブリック オブジェクト モジュールで定義されたユーザー定義型に限り、変数に割り当てることができ、実行時バインディングの関数に渡すことができます。
-' RUNNER: /public object module|user-defined type|array or user-defined type/i
-' NOTE: Excelは標準モジュールのPublic UDTをモジュール修飾した配列宣言として受け付けない。
+' RUNNER: /qualified UDT|public object module|user-defined type|array or user-defined type/i
+' NOTE: UDT配列をTypeNameなどの実行時バインディング関数へ渡すことは、公開オブジェクトモジュール以外では許可されない。
 Public Type CompileRecordT
     Id As Long
 End Type
 
 Sub Case_qualified_udt_array_declaration()
-    Dim values() As CompileError.CompileRecordT ' @error
+    Dim values(0 To 0) As CompileRecordT
+    Debug.Print TypeName(values) ' @error
 End Sub
 
 ' CASE: sub_call_without_required_argument

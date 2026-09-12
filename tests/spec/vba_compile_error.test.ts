@@ -91,20 +91,20 @@ let __pass__ = 0, __fail__ = 0;
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub __test__()
         Dim value As String, dateValue As Variant
         For Each dateValue In Array(1)
@@ -128,20 +128,20 @@ let __pass__ = 0, __fail__ = 0;
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub __test__()
         Dim items As Collection, value As Long
         Set items = New Collection
@@ -226,20 +226,20 @@ value = &H10000000000000000^`, 2, /numeric literal out of range|overflow/i, 'rad
         assertCompileErrorExec(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub __test__()
         Dim value As Byte
         value = &H100
@@ -261,20 +261,20 @@ value = &H10000000000000000^`, 2, /numeric literal out of range|overflow/i, 'rad
         assertCompileErrorExec(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub __test__()
         Dim value As Integer
         value = &H10000
@@ -459,20 +459,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub __test__()
         Dim v
         v = MySub
@@ -494,20 +494,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub __test__()
         Dim v
         v = MySub()
@@ -529,20 +529,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub __test__()
         Dim v
         Dim v
@@ -564,20 +564,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub __test__()
         GoTo NoSuchLabel
       End Sub
@@ -598,20 +598,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Private Function ShadowTarget(value As Variant) As Long
           ShadowTarget = 1
       End Function
@@ -637,20 +637,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub __test__()
         UnknownProc
       End Sub
@@ -671,20 +671,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Option Explicit
       Sub Case_qualified_undeclared_obj()
           UnknownModule.UnknownProc
@@ -706,20 +706,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub Case_undefined_sub_call_no_oe()
           UnknownProc
       End Sub
@@ -740,20 +740,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Option Explicit
       Sub Case_undefined_sub_call_with_oe()
           UnknownProc
@@ -775,20 +775,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub __test__()
         MySub (42)
       End Sub
@@ -809,20 +809,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub Case_property_get_without_required_argument()
           Dim value As Long
           value = MyPropertyHasArg
@@ -844,20 +844,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub __test__()
         Dim flows As Double, value As Double
         flows = 100
@@ -880,20 +880,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub __test__()
         Dim flows(0 To 2) As Currency, value As Variant
         flows(0) = -100: flows(1) = 50: flows(2) = 100
@@ -916,20 +916,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub __test__()
         Dim flows(0 To 2) As Variant, value As Variant
         flows(0) = -100: flows(1) = 50: flows(2) = 100
@@ -952,20 +952,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub __test__()
         Dim flows(0 To 2) As Currency, value As Variant
         flows(0) = -100: flows(1) = 50: flows(2) = 100
@@ -988,20 +988,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub __test__()
         Dim flows(0 To 2) As Variant, value As Variant
         flows(0) = -100: flows(1) = 50: flows(2) = 100
@@ -1024,20 +1024,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub __test__()
         Dim value As Variant
         value = MIRR(Array(-100, 50, 100), 0.1, 0.12)
@@ -1059,20 +1059,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub __test__()
         Dim flows(0 To 2) As Currency, value As Variant
         flows(0) = -100: flows(1) = 50: flows(2) = 100
@@ -1095,20 +1095,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub __test__()
         Dim flows(0 To 2) As Integer, value As Variant
         flows(0) = -100: flows(1) = 50: flows(2) = 100
@@ -1131,20 +1131,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub __test__()
         Dim flows(0 To 2) As Long, value As Variant
         flows(0) = -100: flows(1) = 50: flows(2) = 100
@@ -1167,20 +1167,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub __test__()
         Dim flows(0 To 2) As Single, value As Variant
         flows(0) = -100: flows(1) = 50: flows(2) = 100
@@ -1203,20 +1203,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub __test__()
         Dim flows(0 To 2) As Variant, value As Variant
         flows(0) = -100: flows(1) = 50: flows(2) = 100
@@ -1239,20 +1239,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub __test__()
         Dim flows As Variant, value As Variant
         flows = Array(-100, 50, 100)
@@ -1269,7 +1269,7 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
 
 // [preproc] qualified_udt_array_declaration
 // VBA: コンパイル エラー: パブリック オブジェクト モジュールで定義されたユーザー定義型に限り、変数に割り当てることができ、実行時バインディングの関数に渡すことができます。
-// VBA error line (within Sub body): 1
+// VBA error line (within Sub body): 2
 {
     try {
         assertCompileErrorPreproc(`
@@ -1290,9 +1290,10 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
       End Property
 
       Sub __test__()
-        Dim values() As CompileError.CompileRecordT
+        Dim values(0 To 0) As CompileRecordT
+        Debug.Print TypeName(values)
       End Sub
-    `, '__test__', 19, /public object module|user-defined type|array or user-defined type/i, 'qualified_udt_array_declaration');
+    `, '__test__', 20, /qualified UDT|public object module|user-defined type|array or user-defined type/i, 'qualified_udt_array_declaration');
         console.log('[PASS] qualified_udt_array_declaration');
         __pass__++;
     } catch (e: any) {
@@ -1309,20 +1310,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub Case_sub_call_without_required_argument()
           Call MySubHasArg()
       End Sub
@@ -1343,20 +1344,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub Case_sub_call_with_excess_argument()
           Call MySub(1)
       End Sub
@@ -1377,20 +1378,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub Case_collection_item_without_required_argument()
           Dim items As Collection, value As Variant
           Set items = New Collection
@@ -1414,20 +1415,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorPreproc(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub Case_collection_item_without_required_argument_parens()
           Dim items As Collection, value As Variant
           Set items = New Collection
@@ -1451,25 +1452,25 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorResolve(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub duplicate_sub_name()
-      
+
       End Sub
       Sub duplicate_sub_name()
-      
+
       End Sub
     `, 21, /duplicate.*procedure|duplicate.*name/i, 'duplicate_sub_name');
         console.log('[PASS] duplicate_sub_name');
@@ -1488,20 +1489,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorResolve(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub ModuleLevelDimAfterProcedure()
       End Sub
       Dim moduleLevelVar As Integer
@@ -1522,20 +1523,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorResolve(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub ModuleLevelConstAfterProcedure()
       End Sub
       Const ModuleLevelConst As Integer = 1
@@ -1556,20 +1557,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorResolve(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub ModuleLevelPublicAfterProcedure()
       End Sub
       Public ModuleLevelPublicVar As Integer
@@ -1590,20 +1591,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorResolve(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub ModuleLevelTypeAfterProcedure()
       End Sub
       Type ModuleLevelType
@@ -1626,20 +1627,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorResolve(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub ModuleLevelEnumAfterProcedure()
       End Sub
       Enum ModuleLevelEnum
@@ -1662,20 +1663,20 @@ End Function`, 1, /reserved word/i, 'reserved_word_as_function_name_print');
         assertCompileErrorResolve(`
       Private Sub MySub()
       End Sub
-      
+
       Private Function MyFuncHasArg(x)
       End Function
-      
+
       Private Function MyFuncNoArg()
       End Function
-      
+
       Private Sub MySubHasArg(x)
       End Sub
-      
+
       Private Property Get MyPropertyHasArg(index As Long) As Long
           MyPropertyHasArg = index
       End Property
-      
+
       Sub ModuleLevelToplevelStmtAfterProcedureStrict()
       End Sub
       For moduleLevelIdx = 0 To 10

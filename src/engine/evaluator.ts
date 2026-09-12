@@ -2318,6 +2318,11 @@ export class Evaluator {
                     `Type '${findings.inaccessibleType.name}' is not accessible in this module`,
                     findings.inaccessibleType.line, proc.moduleName ?? undefined);
             }
+            if (findings.udtArrayFunctionArgument) {
+                this.throwCompileError(VbaErrorCode.TYPE_MISMATCH,
+                    'Only user-defined types defined in public object modules can be passed to a function',
+                    findings.udtArrayFunctionArgument.line, proc.moduleName ?? undefined);
+            }
             if (findings.arrayAssignment) {
                 this.throwCompileError(VbaErrorCode.TYPE_MISMATCH,
                     "Can't assign to an array", findings.arrayAssignment.line,
@@ -2428,6 +2433,7 @@ export class Evaluator {
         argumentError?: { code: number; message: string; line?: number };
         raiseEventArgumentError?: { line?: number };
         inaccessibleType?: { name: string; line?: number };
+        udtArrayFunctionArgument?: { name: string; line?: number };
     } {
         const findings = {
             undefinedCalls: [] as UndefinedProcError[],
@@ -2451,6 +2457,7 @@ export class Evaluator {
             argumentError?: { code: number; message: string; line?: number };
             raiseEventArgumentError?: { line?: number };
             inaccessibleType?: { name: string; line?: number };
+            udtArrayFunctionArgument?: { name: string; line?: number };
         };
 
         const knownNames = this.env.collectAllNames();
@@ -2719,6 +2726,19 @@ export class Evaluator {
         const visitExpression = (expr: Expression, assignmentTarget = false, asCallCallee = false): void => {
             if (expr.type === 'CallExpression') {
                 const call = expr as CallExpression;
+                if (!findings.udtArrayFunctionArgument && call.callee.type === 'Identifier' &&
+                    call.callee.name.toLowerCase() === 'typename' && call.args[0]?.type === 'Identifier') {
+                    const name = (call.args[0] as Identifier).name.toLowerCase();
+                    const declaration = arrayDeclarations.get(name);
+                    const elementType = declaration?.type?.toLowerCase();
+                    const primitive = new Set(['variant', 'boolean', 'byte', 'integer', 'long', 'longlong', 'single', 'double', 'currency', 'decimal', 'date', 'string', 'object']);
+                    if (declaration && elementType && !primitive.has(elementType)) {
+                        findings.udtArrayFunctionArgument = {
+                            name: (call.args[0] as Identifier).name,
+                            line: call.loc?.start.line ?? call.callee.loc?.start.line,
+                        };
+                    }
+                }
                 if (!(assignmentTarget && call.callee.type === 'Identifier')) {
                     if (call.callee.type === 'Identifier') {
                         const id = call.callee as Identifier;
@@ -3031,6 +3051,9 @@ export class Evaluator {
                     visitExpression(s.left, true); visitExpression(s.right); break;
                 }
                 case 'CallStatement': visitExpression((stmt as CallStatement).expression); break;
+                case 'DebugPrintStatement':
+                    for (const expression of (stmt as DebugPrintStatement).expressions) visitExpression(expression);
+                    break;
                 case 'RaiseEventStatement': {
                     const event = stmt as RaiseEventStatement;
                     const classDef = proc.moduleName
