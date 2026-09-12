@@ -314,3 +314,33 @@ End Function`);
         'Class-local Private UDT dynamic array ReDim works');
     console.log('[PASS] Class-local Private UDT dynamic array ReDim works');
 }
+
+// Test 14: クラス内Private UDT配列のPreserve/Eraseライフサイクル
+{
+    const ev = evalVBA(String.raw`Class LifecycleHolder
+Private Type TItem
+    Value As Long
+End Type
+Private items() As TItem
+Public Function Probe() As String
+    Dim s As String
+    On Error Resume Next
+    ReDim items(1 To 2)
+    s = "redim=" & Err.Number
+    Err.Clear: items(1).Value = 11: s = s & ";set1=" & Err.Number
+    Err.Clear: ReDim Preserve items(1 To 3): s = s & ";preserve=" & Err.Number
+    Err.Clear: Erase items: s = s & ";erase=" & Err.Number
+    Err.Clear: ReDim items(1 To 1): s = s & ";rebuild-redim=" & Err.Number
+    Err.Clear: items(1).Value = 99: s = s & ";rebuild-set=" & Err.Number
+    Probe = s
+End Function
+End Class
+Public Function RunClassLifecycleUdt() As String
+    Dim instance As New LifecycleHolder
+    RunClassLifecycleUdt = instance.Probe
+End Function`);
+    assert.strictEqual(ev.callProcedure('RunClassLifecycleUdt', []),
+        'redim=0;set1=0;preserve=0;erase=0;rebuild-redim=0;rebuild-set=0',
+        'Class-local Private UDT array lifecycle works');
+    console.log('[PASS] Class-local Private UDT array lifecycle works');
+}
