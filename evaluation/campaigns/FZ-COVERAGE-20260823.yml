@@ -859,3 +859,15 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
+  - id: FZ-COVERAGE-20260823-051
+    title: Double-parenthesized ByRef temporary boundary
+    status: queued
+    priority: 1
+    focus: 通常SubのByRef直接参照と二重括弧一時値の書戻し差
+    priorCauseKey: byref-parenthesized-temporary-binding
+    sourceReview:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
