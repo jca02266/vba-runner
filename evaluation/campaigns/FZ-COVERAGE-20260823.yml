@@ -681,3 +681,15 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/coerce.ts
+  - id: FZ-COVERAGE-20260823-036
+    title: CLng and CDec composition boundary
+    status: queued
+    priority: 3
+    focus: CLng(x)とCLng(CDec(x))の合成変換・丸め・高精度入力
+    priorCauseKey: conversion-composition-coercion-path
+    sourceReview:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
