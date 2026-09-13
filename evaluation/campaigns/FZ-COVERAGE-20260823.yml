@@ -741,3 +741,14 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
+  - id: FZ-COVERAGE-20260823-041
+    title: Class method forced ByVal boundary
+    status: queued
+    priority: 1
+    focus: クラスメソッドByRefの通常引数と括弧付き一時値の書戻し境界
+    priorCauseKey: byref-parenthesized-temporary-binding
+    sourceReview:
+      - src/engine/evaluator.ts
+      - tests/spec/byref-dispatch-matrix.test.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
