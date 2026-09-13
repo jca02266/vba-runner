@@ -823,3 +823,15 @@ items:
     coverageTargets:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
+  - id: FZ-COVERAGE-20260823-048
+    title: Class Optional ByRef omission boundary
+    status: queued
+    priority: 1
+    focus: クラスメソッドOptional ByRef引数の指定・省略と書戻し
+    priorCauseKey: class-optional-byref-omission
+    sourceReview:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
