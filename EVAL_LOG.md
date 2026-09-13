@@ -931,6 +931,7 @@
 | EV-01028 | FZ-COVERAGE-20260823 | verified-no-bug |  | クラスメソッドByRefの通常引数・括弧付き一時値 |
 | EV-01029 | FZ-COVERAGE-20260823 | verified-no-bug |  | Property Get Optional・ByVal修飾子順序 |
 | EV-01030 | FZ-COVERAGE-20260823 | verified-no-bug |  | Error引数名の位置指定・名前付き指定 |
+| EV-01031 | FZ-COVERAGE-20260823 | verified-no-bug |  | クラス配列ByRefの位置指定・名前付き指定束縛 |
 
 ## 状態集計
 
@@ -941,7 +942,7 @@
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
-| verified-no-bug | 494 |
+| verified-no-bug | 495 |
 
 横展開未解決経路: 621、実Excel待ち評価: 1
 

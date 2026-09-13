@@ -776,3 +776,14 @@ items:
     coverageTargets:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
+  - id: FZ-COVERAGE-20260823-044
+    title: Class array ByRef named binding symmetry
+    status: queued
+    priority: 1
+    focus: クラスメソッド配列ByRefの位置指定と名前付き指定の束縛
+    priorCauseKey: class-array-byref-named-argument-binding
+    sourceReview:
+      - src/engine/evaluator.ts
+      - tests/spec/byref-dispatch-matrix.test.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
