@@ -693,3 +693,15 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/coerce.ts
+  - id: FZ-COVERAGE-20260823-037
+    title: Len and CStr composition boundary
+    status: queued
+    priority: 3
+    focus: Len(CStr(x))のEmpty・数値・Null合成変換
+    priorCauseKey: conversion-composition-coercion-path
+    sourceReview:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts

@@ -924,6 +924,7 @@
 | EV-01021 | FZ-COVERAGE-20260823 | verified-no-bug |  | JoinのDelimiter Null・Empty境界 |
 | EV-01022 | FZ-COVERAGE-20260823 | verified-no-bug |  | CIntとCVarの合成変換境界 |
 | EV-01023 | FZ-COVERAGE-20260823 | verified-no-bug |  | CLngとCDecの合成変換境界 |
+| EV-01024 | FZ-COVERAGE-20260823 | verified-no-bug |  | LenとCStrの合成変換境界 |
 
 ## 状態集計
 
@@ -934,7 +935,7 @@
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
-| verified-no-bug | 487 |
+| verified-no-bug | 488 |
 
 横展開未解決経路: 621、実Excel待ち評価: 1
 
