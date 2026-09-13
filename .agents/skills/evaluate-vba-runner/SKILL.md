@@ -52,6 +52,13 @@ maintain a second copy here.
    dispatch path, type, or specification question. Register a new candidate
    only for the genuinely uncovered portion, and state that narrower scope in
    its focus and evaluation method.
+   When choosing among uncovered paths, rank areas before designing a probe:
+   first use the lowest relative convergence score, then higher recent or
+   cumulative bug detection rate and larger cumulative bug count, followed by
+   coverage gaps and unresolved horizontal/RCA paths. Prefer a path where at
+   least two of these signals indicate risk. Do not spend discovery cycles on
+   a high-convergence area merely to increase its evaluation count; evaluate it
+   only when a concrete uncovered path or known-cause connection remains.
    Treat a failure as a bug only after reproducing it with a minimal case and
    checking the specification or Excel expectation. Before writing an EV,
    register a new candidate in the campaign manifest; never create an EV or
