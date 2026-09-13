@@ -717,3 +717,15 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/coerce.ts
+  - id: FZ-COVERAGE-20260823-039
+    title: Class Property Let named binding symmetry
+    status: queued
+    priority: 1
+    focus: クラス内Property Letの位置引数と名前付き引数の束縛対称性
+    priorCauseKey: property-let-named-argument-binding
+    sourceReview:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
