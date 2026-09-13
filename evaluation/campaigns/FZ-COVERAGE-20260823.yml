@@ -847,3 +847,15 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
+  - id: FZ-COVERAGE-20260823-050
+    title: Single ByRef named binding symmetry
+    status: queued
+    priority: 1
+    focus: 通常SubのSingle ByRef引数における位置指定と名前付き指定
+    priorCauseKey: single-byref-named-argument-binding
+    sourceReview:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts

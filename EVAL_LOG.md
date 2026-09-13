@@ -937,6 +937,7 @@
 | EV-01034 | FZ-COVERAGE-20260823 | verified-no-bug |  | Output ByRef引数の位置指定・名前付き指定 |
 | EV-01035 | FZ-COVERAGE-20260823 | verified-no-bug |  | クラスOptional ByRef引数の指定・省略 |
 | EV-01036 | FZ-COVERAGE-20260823 | verified-no-bug |  | Boolean ByRef引数の位置指定・名前付き指定 |
+| EV-01037 | FZ-COVERAGE-20260823 | verified-no-bug |  | Single ByRef引数の位置指定・名前付き指定 |
 
 ## 状態集計
 
@@ -947,7 +948,7 @@
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
-| verified-no-bug | 500 |
+| verified-no-bug | 501 |
 
 横展開未解決経路: 621、実Excel待ち評価: 1
 
