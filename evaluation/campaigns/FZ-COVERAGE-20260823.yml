@@ -752,3 +752,15 @@ items:
       - tests/spec/byref-dispatch-matrix.test.ts
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: FZ-COVERAGE-20260823-042
+    title: Property Get Optional ByVal modifier order
+    status: queued
+    priority: 1
+    focus: Property GetのOptionalとByVal修飾子順序および省略引数
+    priorCauseKey: property-get-optional-byval-modifier-order
+    sourceReview:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts

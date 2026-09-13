@@ -929,6 +929,7 @@
 | EV-01026 | FZ-COVERAGE-20260823 | verified-no-bug |  | クラスProperty Letの位置引数・名前付き引数束縛 |
 | EV-01027 | FZ-COVERAGE-20260823 | verified-no-bug |  | Property Get ByRef引数の位置指定・名前付き指定束縛 |
 | EV-01028 | FZ-COVERAGE-20260823 | verified-no-bug |  | クラスメソッドByRefの通常引数・括弧付き一時値 |
+| EV-01029 | FZ-COVERAGE-20260823 | verified-no-bug |  | Property Get Optional・ByVal修飾子順序 |
 
 ## 状態集計
 
@@ -939,7 +940,7 @@
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
-| verified-no-bug | 492 |
+| verified-no-bug | 493 |
 
 横展開未解決経路: 621、実Excel待ち評価: 1
 
