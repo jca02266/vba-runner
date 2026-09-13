@@ -811,3 +811,15 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
+  - id: FZ-COVERAGE-20260823-047
+    title: Contextual Output ByRef binding
+    status: queued
+    priority: 1
+    focus: 予約語寄り識別子Outputの通常Sub ByRef引数束縛
+    priorCauseKey: contextual-keyword-byref-binding
+    sourceReview:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts

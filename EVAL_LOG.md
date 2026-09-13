@@ -934,6 +934,7 @@
 | EV-01031 | FZ-COVERAGE-20260823 | verified-no-bug |  | クラス配列ByRefの位置指定・名前付き指定束縛 |
 | EV-01032 | FZ-COVERAGE-20260823 | verified-no-bug |  | Date引数名の位置指定・名前付き指定 |
 | EV-01033 | FZ-COVERAGE-20260823 | verified-no-bug |  | Optional indexed Property Letの代入・省略添字 |
+| EV-01034 | FZ-COVERAGE-20260823 | verified-no-bug |  | Output ByRef引数の位置指定・名前付き指定 |
 
 ## 状態集計
 
@@ -944,7 +945,7 @@
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
-| verified-no-bug | 497 |
+| verified-no-bug | 498 |
 
 横展開未解決経路: 621、実Excel待ち評価: 1
 
