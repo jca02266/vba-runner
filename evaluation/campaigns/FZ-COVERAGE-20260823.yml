@@ -764,3 +764,15 @@ items:
     coverageTargets:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
+  - id: FZ-COVERAGE-20260823-043
+    title: Context keyword Error as argument name
+    status: queued
+    priority: 1
+    focus: 予約語兼コンテキストキーワードErrorの引数宣言と名前付き呼出し
+    priorCauseKey: contextual-keyword-argument-binding
+    sourceReview:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
