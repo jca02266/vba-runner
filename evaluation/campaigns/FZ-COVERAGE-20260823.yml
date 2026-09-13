@@ -705,3 +705,15 @@ items:
     coverageTargets:
       - src/engine/builtins.ts
       - src/engine/coerce.ts
+  - id: FZ-COVERAGE-20260823-038
+    title: CCur and CDbl composition boundary
+    status: queued
+    priority: 3
+    focus: CCur(x)とCCur(CDbl(x))の合成変換・精度境界
+    priorCauseKey: conversion-composition-coercion-path
+    sourceReview:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
+    coverageTargets:
+      - src/engine/builtins.ts
+      - src/engine/coerce.ts
