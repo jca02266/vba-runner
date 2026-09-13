@@ -871,3 +871,13 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - src/engine/parser.ts
+  - id: FZ-COVERAGE-20260914-001
+    title: WithEvents subscriber destruction detaches handlers
+    status: queued
+    priority: 2
+    focus: WithEvents購読者破棄後の発行元イベントとハンドラー解除
+    sourceReview:
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/evaluator.ts
