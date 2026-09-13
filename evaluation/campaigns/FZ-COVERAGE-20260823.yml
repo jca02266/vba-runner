@@ -799,3 +799,15 @@ items:
     coverageTargets:
       - src/engine/parser.ts
       - src/engine/evaluator.ts
+  - id: FZ-COVERAGE-20260823-046
+    title: Optional indexed Property Let assignment
+    status: queued
+    priority: 1
+    focus: Optional引数付きindexed Property Letの代入構文と省略添字
+    priorCauseKey: optional-indexed-property-let-binding
+    sourceReview:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
