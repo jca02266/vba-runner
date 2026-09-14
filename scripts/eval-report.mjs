@@ -395,9 +395,9 @@ function timeSeries(records, results, findings, stateEvents) {
         discoveredFindingIds.add(findingId);
         areaState.discovered.add(findingId);
         const finding = findings.get(findingId);
-        const findingIsFixed = finding?.status === 'fixed';
+        const findingIsResolved = ['fixed', 'known-limit', 'retired'].includes(finding?.status);
         if (resolvedFindingStatuses.has(status)
-          || (status === 'verified-no-bug' && findingIsFixed)) {
+          || (status === 'verified-no-bug' && findingIsResolved)) {
           resolvedFindingIds.add(findingId);
           areaState.resolved.add(findingId);
         } else {
