@@ -2,6 +2,23 @@
 
 All notable changes to the `vba-runner` npm package are documented here.
 
+## [0.1.1-alpha.24] - 2026-09-15
+
+### Fixed
+
+- **Real-VBA engine compatibility updates** — qualified UDT references now
+  preserve module ownership and visibility across instantiation, arguments,
+  returns, arrays, and class procedures.
+- **Real-VBA engine compatibility updates** — inaccessible Private UDTs and
+  invalid UDT array arguments are rejected during precheck instead of being
+  deferred to runtime errors.
+- **Real-VBA engine compatibility updates** — WithEvents handler ownership,
+  event signatures, and subscriber destruction no longer leave invalid event
+  callbacks attached.
+- **Evaluation diagnostics** — resolved findings are removed from open
+  convergence counts, including state transitions whose timestamps include
+  explicit time-zone offsets.
+
 ## [0.1.1-alpha.23] - 2026-08-31
 
 ### Fixed

@@ -1099,11 +1099,11 @@ export class Evaluator {
         const owner = ownerModule?.toLowerCase();
         const actualParts = actual.split('.');
         const expectedParts = expected.split('.');
-        const actualBare = actualParts.at(-1);
-        const expectedBare = expectedParts.at(-1);
+        const actualBare = actualParts[actualParts.length - 1];
+        const expectedBare = expectedParts[expectedParts.length - 1];
         if (!actualBare || actualBare !== expectedBare) return false;
-        const actualOwner = actualParts.length > 1 ? actualParts.at(-2) : undefined;
-        const expectedOwner = expectedParts.length > 1 ? expectedParts.at(-2) : undefined;
+        const actualOwner = actualParts.length > 1 ? actualParts[actualParts.length - 2] : undefined;
+        const expectedOwner = expectedParts.length > 1 ? expectedParts[expectedParts.length - 2] : undefined;
         if (actualOwner && expectedOwner) return actualOwner === expectedOwner;
         // An unqualified parameter name is resolved in its declaring module.
         // A qualified runtime name is equivalent only when that owner matches.
@@ -2373,7 +2373,8 @@ export class Evaluator {
             .map((stmt) => stmt.name.toLowerCase()));
         const exposedType = (typeName: string | undefined): string | undefined => {
             if (!typeName) return undefined;
-            const bare = typeName.split('.').at(-1)?.toLowerCase();
+            const parts = typeName.split('.');
+            const bare = parts[parts.length - 1]?.toLowerCase();
             return bare && privateTypes.has(bare) ? bare : undefined;
         };
         const returnType = exposedType(proc.returnType);
@@ -2727,7 +2728,7 @@ export class Evaluator {
             if (expr.type === 'CallExpression') {
                 const call = expr as CallExpression;
                 if (!findings.udtArrayFunctionArgument && call.callee.type === 'Identifier' &&
-                    call.callee.name.toLowerCase() === 'typename' && call.args[0]?.type === 'Identifier') {
+                    (call.callee as Identifier).name.toLowerCase() === 'typename' && call.args[0]?.type === 'Identifier') {
                     const name = (call.args[0] as Identifier).name.toLowerCase();
                     const declaration = arrayDeclarations.get(name);
                     const elementType = declaration?.type?.toLowerCase();
@@ -3052,7 +3053,9 @@ export class Evaluator {
                 }
                 case 'CallStatement': visitExpression((stmt as CallStatement).expression); break;
                 case 'DebugPrintStatement':
-                    for (const expression of (stmt as DebugPrintStatement).expressions) visitExpression(expression);
+                    for (const expression of (stmt as DebugPrintStatement).expressions) {
+                        if (typeof expression !== 'string') visitExpression(expression);
+                    }
                     break;
                 case 'RaiseEventStatement': {
                     const event = stmt as RaiseEventStatement;
@@ -3061,7 +3064,7 @@ export class Evaluator {
                         : undefined;
                     const declaration = classDef?.body.find((member): member is EventDeclaration =>
                         member.type === 'EventDeclaration' &&
-                        member.name.name.toLowerCase() === event.eventName.name.toLowerCase());
+                        (member as EventDeclaration).name.name.toLowerCase() === event.eventName.name.toLowerCase());
                     if (declaration && !findings.raiseEventArgumentError) {
                         const required = requiredArgumentCount(declaration.parameters);
                         if (event.args.length < required || event.args.length > declaration.parameters.length) {
@@ -7204,7 +7207,7 @@ export class Evaluator {
             const eventDecl = (value.__classDef__ as ClassDeclaration | undefined)?.body
                 .find((member): member is EventDeclaration =>
                     member.type === 'EventDeclaration' &&
-                    member.name.name.toLowerCase() === eventName.toLowerCase());
+                    (member as EventDeclaration).name.name.toLowerCase() === eventName.toLowerCase());
             if (classDef) {
                 // Event handlers are Sub procedures.  Generic member lookup
                 // also returns Function/Property declarations, which can
