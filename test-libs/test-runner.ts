@@ -523,6 +523,25 @@ function errorOriginatesInProcedure(
     return true;
 }
 
+/** Resolve the procedure named by a precheck error raised before a call frame
+ * is entered (for example an Option Explicit failure in a class method). */
+function spanForPrecheckError(
+    spans: ProcedureSpan[],
+    error: unknown,
+): ProcedureSpan | undefined {
+    const message = String((error as any)?.message ?? '');
+    const match = message.match(/in '([^']+)'/i);
+    if (!match) return undefined;
+    const name = match[1].toLowerCase();
+    return spans.find(candidate => candidate.name === name);
+}
+
+function precheckErrorMatchesSpan(error: unknown, span: ProcedureSpan): boolean {
+    const message = String((error as any)?.message ?? '');
+    const match = message.match(/in '([^']+)'/i);
+    return !match || match[1].toLowerCase() === span.name;
+}
+
 function checkCalledProcedureDiagnostics(
     context: DiagnosticContext,
     span: ProcedureSpan | undefined,
@@ -590,7 +609,11 @@ function attachDiagnosticConsistency(
             checkCalledProcedureDiagnostics(currentContext(), span, undefined, options);
             return result;
         } catch (error) {
-            checkCalledProcedureDiagnostics(currentContext(), span, error, options);
+            const diagnosticSpan = span && errorOriginatesInProcedure(error, span)
+                && precheckErrorMatchesSpan(error, span)
+                ? span
+                : spanForPrecheckError(spans, error) ?? span;
+            checkCalledProcedureDiagnostics(currentContext(), diagnosticSpan, error, options);
             throw error;
         }
     };
@@ -601,7 +624,11 @@ function attachDiagnosticConsistency(
             originalCheck.call(this, name);
             checkCalledProcedureDiagnostics(currentContext(), span, undefined, options);
         } catch (error) {
-            checkCalledProcedureDiagnostics(currentContext(), span, error, options);
+            const diagnosticSpan = span && errorOriginatesInProcedure(error, span)
+                && precheckErrorMatchesSpan(error, span)
+                ? span
+                : spanForPrecheckError(spans, error) ?? span;
+            checkCalledProcedureDiagnostics(currentContext(), diagnosticSpan, error, options);
             throw error;
         }
     };

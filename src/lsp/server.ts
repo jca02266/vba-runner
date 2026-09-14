@@ -799,6 +799,8 @@ export class LSPServer {
                         start: { line: Math.max(0, (d.line ?? 1) - 1), character: 0 },
                         end: { line: Math.max(0, (d.line ?? 1) - 1), character: 1 },
                     },
+                    // Raw severity 1 is converted by diagnostic-publisher to
+                    // the LSP Error severity (0), matching parser errors.
                     severity: 1,
                     code: d.number == null ? 'VBA-PRECHECK' : `VBA-PRECHECK-${d.number}`,
                     message: d.message,
