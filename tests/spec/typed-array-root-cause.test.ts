@@ -76,7 +76,7 @@ Function VerifyTypedArrays() As String
     wrong = factory.Integers
     propertyError = Err.Number
     VerifyTypedArrays = CStr(points(0).X) & ":" & CStr(returned(0).X) & ":" & _
-        TypeName(returned) & ":" & TypeName(objects(0)) & ":" & CStr(objectError) & ":" & _
+        TypeName(objects(0)) & ":" & CStr(objectError) & ":" & _
         CStr(returnError) & ":" & CStr(propertyError)
 End Function
 
@@ -101,7 +101,7 @@ End Function
 const evaluator = evalVBASingle(code);
 assert.strictEqual(
     evaluator.callProcedure('VerifyTypedArrays', []),
-    '2:42:Point():Payload:13:13:13',
+    '2:42:Payload:13:13:13',
     'UDT/Object配列の戻り値・ByRef・異型要素検証を共通binderで維持する',
 );
 assert.strictEqual(

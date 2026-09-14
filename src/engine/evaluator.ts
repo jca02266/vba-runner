@@ -2733,7 +2733,11 @@ export class Evaluator {
                     const declaration = arrayDeclarations.get(name);
                     const elementType = declaration?.type?.toLowerCase();
                     const primitive = new Set(['variant', 'boolean', 'byte', 'integer', 'long', 'longlong', 'single', 'double', 'currency', 'decimal', 'date', 'string', 'object']);
-                    if (declaration && elementType && !primitive.has(elementType)) {
+                    // Object/class arrays are valid TypeName operands.  The
+                    // compile-time restriction applies only to UDT arrays;
+                    // class instances must remain on the normal runtime path.
+                    if (declaration && elementType && !primitive.has(elementType)
+                        && !this.classDefinitions.has(elementType)) {
                         findings.udtArrayFunctionArgument = {
                             name: (call.args[0] as Identifier).name,
                             line: call.loc?.start.line ?? call.callee.loc?.start.line,
