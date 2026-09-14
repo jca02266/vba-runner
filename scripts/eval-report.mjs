@@ -400,6 +400,8 @@ function timeSeries(records, results, findings, stateEvents) {
           || (status === 'verified-no-bug' && findingIsResolved)) {
           resolvedFindingIds.add(findingId);
           areaState.resolved.add(findingId);
+          openFindingIds.delete(findingId);
+          areaState.open.delete(findingId);
         } else {
           openFindingIds.add(findingId);
           areaState.open.add(findingId);
