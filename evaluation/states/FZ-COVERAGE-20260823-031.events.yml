@@ -5,8 +5,8 @@
 - candidateId: FZ-COVERAGE-20260823-031
   evaluationId: EV-01018
   status: bug-found
-  occurredAt: '2026-09-12T13:30:00+09:00'
+  occurredAt: '2026-09-12T13:30:00Z'
 - candidateId: FZ-COVERAGE-20260823-031
   evaluationId: EV-01018
   status: fixed
-  occurredAt: '2026-09-12T13:45:00+09:00'
+  occurredAt: '2026-09-12T13:45:00Z'
