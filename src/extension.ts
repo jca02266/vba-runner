@@ -74,7 +74,15 @@ class PublicSubTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> 
     async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
         if (element instanceof PublicSubFileItem) return element.children;
         const files: vscode.Uri[] = [];
-        for (const pattern of ['**/*.bas', '**/*.cls', '**/*.frm']) {
+        // Keep the explorer lightweight: VBA sources are conventionally kept
+        // at the workspace root or directly below src/vba.  Do not recurse
+        // through generated dependencies or large arbitrary directory trees.
+        const sourceDirectories = ['', 'src', 'vba'];
+        const patterns = sourceDirectories.flatMap(directory => {
+            const prefix = directory ? `${directory}/` : '';
+            return [`${prefix}*.bas`, `${prefix}*.cls`, `${prefix}*.frm`];
+        });
+        for (const pattern of patterns) {
             files.push(...await vscode.workspace.findFiles(pattern, '**/{node_modules,.git}/**'));
         }
         const result: PublicSubFileItem[] = [];
