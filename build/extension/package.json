@@ -130,7 +130,7 @@
         {
           "id": "vba-runner.publicSubs",
           "name": "VBA Public Subs",
-          "when": "workspaceFolderCount > 0"
+          "when": "vba-runner.hasVbaSources"
         }
       ]
     },

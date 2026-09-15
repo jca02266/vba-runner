@@ -67,26 +67,36 @@ class PublicSubTreeProvider implements vscode.TreeDataProvider<vscode.TreeItem> 
     private readonly changedEmitter = new vscode.EventEmitter<void>();
     readonly onDidChangeTreeData = this.changedEmitter.event;
 
-    refresh(): void { this.changedEmitter.fire(); }
+    private readonly sourcePatterns = ['', 'src', 'vba'].flatMap(directory => {
+        const prefix = directory ? `${directory}/` : '';
+        return [`${prefix}*.bas`, `${prefix}*.cls`, `${prefix}*.frm`];
+    });
+
+    private async findSourceFiles(): Promise<vscode.Uri[]> {
+        const files = new Map<string, vscode.Uri>();
+        for (const pattern of this.sourcePatterns) {
+            for (const file of await vscode.workspace.findFiles(pattern, '**/{node_modules,.git}/**')) {
+                files.set(file.toString(), file);
+            }
+        }
+        return [...files.values()].sort((a, b) => a.fsPath.localeCompare(b.fsPath));
+    }
+
+    async refresh(): Promise<void> {
+        const files = await this.findSourceFiles();
+        await vscode.commands.executeCommand('setContext', 'vba-runner.hasVbaSources', files.length > 0);
+        this.changedEmitter.fire();
+    }
 
     getTreeItem(element: vscode.TreeItem): vscode.TreeItem { return element; }
 
     async getChildren(element?: vscode.TreeItem): Promise<vscode.TreeItem[]> {
         if (element instanceof PublicSubFileItem) return element.children;
-        const files: vscode.Uri[] = [];
-        // Keep the explorer lightweight: VBA sources are conventionally kept
-        // at the workspace root or directly below src/vba.  Do not recurse
-        // through generated dependencies or large arbitrary directory trees.
-        const sourceDirectories = ['', 'src', 'vba'];
-        const patterns = sourceDirectories.flatMap(directory => {
-            const prefix = directory ? `${directory}/` : '';
-            return [`${prefix}*.bas`, `${prefix}*.cls`, `${prefix}*.frm`];
-        });
-        for (const pattern of patterns) {
-            files.push(...await vscode.workspace.findFiles(pattern, '**/{node_modules,.git}/**'));
-        }
+        // Keep the explorer lightweight: only direct children of the
+        // workspace root, src, and vba are considered; no recursive scan.
+        const files = await this.findSourceFiles();
         const result: PublicSubFileItem[] = [];
-        for (const file of files.sort((a, b) => a.fsPath.localeCompare(b.fsPath))) {
+        for (const file of files) {
             const uri = file.toString();
             const procedures = lspServer?.getExecutablePublicSubs(uri) ?? [];
             const children = procedures.map(proc => new PublicSubItem(
@@ -132,6 +142,10 @@ export async function activate(context: vscode.ExtensionContext) {
     outputChannel.appendLine('LSP Server initialized');
 
     const publicSubTree = new PublicSubTreeProvider();
+    // A view contribution cannot query the workspace filesystem directly.
+    // Publish a small context key so the view is present only when a source
+    // exists in one of the supported, bounded search locations.
+    await publicSubTree.refresh();
     context.subscriptions.push(
         vscode.window.registerTreeDataProvider('vba-runner.publicSubs', publicSubTree),
         vscode.commands.registerCommand('vba-runner.openProcedure', async (uri: string, line: number, character: number) => {
@@ -152,9 +166,11 @@ export async function activate(context: vscode.ExtensionContext) {
         vscode.commands.registerCommand('vba-runner.treeShowInCallGraph', (item: PublicSubItem) =>
             vscode.commands.executeCommand('vba-runner.showInCallGraph', item.uri, item.procedureName)),
         vscode.commands.registerCommand('vba-runner.refreshPublicSubs', () => publicSubTree.refresh()),
-        vscode.workspace.onDidChangeTextDocument(() => publicSubTree.refresh()),
-        vscode.workspace.onDidCreateFiles(() => publicSubTree.refresh()),
-        vscode.workspace.onDidDeleteFiles(() => publicSubTree.refresh()),
+        vscode.workspace.onDidChangeTextDocument(() => { void publicSubTree.refresh(); }),
+        vscode.workspace.onDidCreateFiles(() => { void publicSubTree.refresh(); }),
+        vscode.workspace.onDidDeleteFiles(() => { void publicSubTree.refresh(); }),
+        vscode.workspace.onDidRenameFiles(() => { void publicSubTree.refresh(); }),
+        vscode.workspace.onDidChangeWorkspaceFolders(() => { void publicSubTree.refresh(); }),
     );
 
     // ワークスペースの vba-types.json から外部型定義を読み込む
