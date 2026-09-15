@@ -2,6 +2,14 @@
 
 All notable changes to the VBA Runner extension are documented here.
 
+## [0.3.11] - 2026-09-16
+
+### Changed
+
+- **Public Subs explorer** — show the explorer view only when VBA sources are
+  present, and limit discovery to the workspace root, `src`, and `vba`
+  directories.
+
 ## [0.3.10] - 2026-08-31
 
 ### Added
