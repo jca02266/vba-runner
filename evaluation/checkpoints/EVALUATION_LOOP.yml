@@ -3253,3 +3253,11 @@ checkpoints:
     nextEvaluation: EV-01047
     nextCandidate: FZ-DISCOVERY-20260920-DATE-008
     coverageSnapshot: COV-2026-09-20-discovery
+  - afterEvaluation: EV-01047
+    audit: "944 evaluations, 0 active claims; needs-excel 0件、bug-found 0件。EmptyのDate ByRef CallByName変換はエラー0で完了した"
+    decision: "独立レビューでEmpty境界の記録整合を確認したうえで、NullをDate ByRefへ渡すCallByName経路を評価する"
+    action: claim
+    nextArea: "引数・ByRef・Property"
+    nextEvaluation: EV-01048
+    nextCandidate: FZ-DISCOVERY-20260920-DATE-009
+    coverageSnapshot: COV-2026-09-20-discovery
