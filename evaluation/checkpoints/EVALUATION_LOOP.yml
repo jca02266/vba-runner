@@ -3205,3 +3205,11 @@ checkpoints:
     nextEvaluation: EV-01041
     nextCandidate: FZ-DISCOVERY-20260920-DATE-002
     coverageSnapshot: COV-2026-09-20-discovery
+  - afterEvaluation: EV-01041
+    audit: "938 evaluations, 0 active claims; needs-excel 0件、bug-found 0件。Date配列ByRefの通常呼出しとCallByName経路も一致した"
+    decision: "独立レビューで未重複と確認されたDate ByRef戻り値の通常Function経路を次の評価対象にする"
+    action: claim
+    nextArea: "引数・ByRef・Property"
+    nextEvaluation: EV-01042
+    nextCandidate: FZ-DISCOVERY-20260920-DATE-003
+    coverageSnapshot: COV-2026-09-20-discovery
