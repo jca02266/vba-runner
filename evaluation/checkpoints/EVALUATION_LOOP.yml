@@ -3221,3 +3221,11 @@ checkpoints:
     nextEvaluation: EV-01043
     nextCandidate: FZ-DISCOVERY-20260920-DATE-004
     coverageSnapshot: COV-2026-09-20-discovery
+  - afterEvaluation: EV-01043
+    audit: "940 evaluations, 0 active claims; needs-excel 0件、bug-found 0件。Date FunctionのCallByName経路も通常経路と一致した"
+    decision: "独立レビューで手続き整合を確認したうえで、Date Property Let/Getの通常ラウンドトリップを評価する"
+    action: claim
+    nextArea: "引数・ByRef・Property"
+    nextEvaluation: EV-01044
+    nextCandidate: FZ-DISCOVERY-20260920-DATE-005
+    coverageSnapshot: COV-2026-09-20-discovery
