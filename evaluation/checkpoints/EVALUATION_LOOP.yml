@@ -3229,3 +3229,11 @@ checkpoints:
     nextEvaluation: EV-01044
     nextCandidate: FZ-DISCOVERY-20260920-DATE-005
     coverageSnapshot: COV-2026-09-20-discovery
+  - afterEvaluation: EV-01044
+    audit: "941 evaluations, 0 active claims; needs-excel 0件、bug-found 0件。Date Property Let/Getの通常経路は保存値を保持した"
+    decision: "独立レビューで手続き整合を確認したうえで、Date Property Let/GetのCallByName経路を評価する"
+    action: claim
+    nextArea: "引数・ByRef・Property"
+    nextEvaluation: EV-01045
+    nextCandidate: FZ-DISCOVERY-20260920-DATE-006
+    coverageSnapshot: COV-2026-09-20-discovery
