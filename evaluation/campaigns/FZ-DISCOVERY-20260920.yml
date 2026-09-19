@@ -106,3 +106,36 @@ items:
     coverageTargets:
       - src/engine/evaluator.ts
       - tests/spec/callbyname.test.ts
+  - id: FZ-DISCOVERY-20260920-UDT-001
+    title: UDT member array bound constant expression
+    status: queued
+    priority: 1
+    focus: UDTメンバー配列の上限にConst名を使う宣言の解析
+    sourceReview:
+      - src/engine/parser.ts
+      - src/engine/lexer.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/lexer.ts
+  - id: FZ-DISCOVERY-20260920-UDT-002
+    title: UDT member array bound Option Base
+    status: queued
+    priority: 2
+    focus: UDTメンバー配列の下限省略時にOption Baseを適用する境界
+    sourceReview:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/evaluator.ts
+  - id: FZ-DISCOVERY-20260920-UDT-003
+    title: Qualified Const in UDT member bound
+    status: queued
+    priority: 2
+    focus: UDTメンバー配列境界での修飾Const可視性
+    sourceReview:
+      - src/engine/evaluator.ts
+      - src/engine/parser.ts
+    coverageTargets:
+      - src/engine/evaluator.ts

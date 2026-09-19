@@ -5723,6 +5723,34 @@ export class Evaluator {
         }
     }
 
+    /** Resolve deferred constant expressions used by UDT member declarations. */
+    private resolveTypeMemberConstants(stmt: TypeDeclaration): void {
+        for (const member of stmt.members) {
+            if (member.arrayBoundExpressions?.length) {
+                const bounds: { lower: number; upper: number }[] = [];
+                for (const bound of member.arrayBoundExpressions) {
+                    this.validateConstantExpr(bound.upper);
+                    if (bound.lower) this.validateConstantExpr(bound.lower);
+                    const upper = Number(this.evaluateConstValue(bound.upper));
+                    const lower = bound.lower ? Number(this.evaluateConstValue(bound.lower)) : 0;
+                    if (!Number.isInteger(lower) || !Number.isInteger(upper) || lower > upper) {
+                        this.throwCompileError(VbaErrorCode.CONSTANT_EXPRESSION_REQUIRED, 'Invalid array bound');
+                    }
+                    bounds.push({ lower, upper });
+                }
+                member.arrayBounds = bounds;
+            }
+            if (member.fixedLengthExpression) {
+                this.validateConstantExpr(member.fixedLengthExpression);
+                const length = Number(this.evaluateConstValue(member.fixedLengthExpression));
+                if (!Number.isInteger(length) || length < 1) {
+                    this.throwCompileError(VbaErrorCode.CONSTANT_EXPRESSION_REQUIRED, 'Invalid string length');
+                }
+                member.fixedLength = length;
+            }
+        }
+    }
+
     private evaluateOptionCompareStatement(stmt: OptionCompareStatement) {
         this.comparisonMode = stmt.mode;
         const moduleName = this.currentSourceModule || this.executingModuleName;
@@ -6887,6 +6915,26 @@ export class Evaluator {
             const prev = this.currentSourceModule;
             this.currentSourceModule = moduleName;
             this.evaluateOneConst(decl, stmt.scope);
+            this.currentSourceModule = prev;
+        }
+
+        // UDT declarations are registered during Pass 1, but their member
+        // bounds are constant expressions and must be resolved only after all
+        // module constants have been evaluated.
+        for (const { ast, moduleName } of modules) {
+            const prev = this.currentSourceModule;
+            this.currentSourceModule = moduleName;
+            for (const stmt of ast.body) {
+                if (stmt.type === 'TypeDeclaration') {
+                    this.resolveTypeMemberConstants(stmt as TypeDeclaration);
+                } else if (stmt.type === 'ClassDeclaration') {
+                    for (const member of (stmt as ClassDeclaration).body) {
+                        if (member.type === 'TypeDeclaration') {
+                            this.resolveTypeMemberConstants(member as TypeDeclaration);
+                        }
+                    }
+                }
+            }
             this.currentSourceModule = prev;
         }
 

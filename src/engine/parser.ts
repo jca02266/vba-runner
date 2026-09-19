@@ -434,6 +434,10 @@ export interface TypeMember {
     fixedLength?: number;
     isArray?: boolean;
     arrayBounds?: { lower: number; upper: number }[];
+    /** Source constant expressions for fixed UDT member bounds. Resolved after Const pass. */
+    arrayBoundExpressions?: ArrayBound[];
+    /** Source constant expression for a fixed-length UDT String member. */
+    fixedLengthExpression?: Expression;
 }
 
 export interface TypeDeclaration extends Statement {
@@ -2504,27 +2508,20 @@ export class Parser {
 
             // Parse optional array bounds: (0 To 31), (9), (), etc.
             let memberIsArray = false;
-            let memberArrayBounds: { lower: number; upper: number }[] | undefined;
+            let memberArrayBoundExpressions: ArrayBound[] | undefined;
             if (this.peek().type === TokenType.OperatorLParen) {
                 memberIsArray = true;
                 this.advance(); // consume '('
                 if (this.peek().type !== TokenType.OperatorRParen) {
-                    memberArrayBounds = [];
+                    memberArrayBoundExpressions = [];
                     do {
-                        let lower = 0; // default; option base handled at runtime
-                        let upper = 0;
-                        const first = this.peek();
-                        if (first.type === TokenType.Number) {
-                            const firstVal = parseInt(this.advance().value, 10);
-                            if (this.peek().type === TokenType.KeywordTo) {
-                                this.advance(); // consume 'To'
-                                lower = firstVal;
-                                upper = parseInt(this.advance().value, 10);
-                            } else {
-                                upper = firstVal;
-                            }
+                        let lower: Expression | undefined;
+                        let upper = this.parseExpression();
+                        if (this.match(TokenType.KeywordTo)) {
+                            lower = upper;
+                            upper = this.parseExpression();
                         }
-                        memberArrayBounds.push({ lower, upper });
+                        memberArrayBoundExpressions.push({ lower, upper });
                     } while (this.match(TokenType.OperatorComma));
                 }
                 this.match(TokenType.OperatorRParen); // consume ')'
@@ -2540,19 +2537,36 @@ export class Parser {
             }
             this.advance();
             let memberFixedLength: number | undefined;
+            let memberFixedLengthExpression: Expression | undefined;
             if (memberTypeToken.value.toLowerCase() === 'string' && this.peek().type === TokenType.OperatorMultiply) {
                 this.advance(); // consume '*'
                 const lenTok = this.peek();
                 if (lenTok.type === TokenType.Number) {
-                    memberFixedLength = parseInt(this.advance().value, 10);
+                    memberFixedLengthExpression = this.parseExpression();
+                    memberFixedLength = (memberFixedLengthExpression as NumberLiteral).value;
                 } else if (this.isNameToken(lenTok)) {
-                    this.advance(); // consume constant name; fixedLength stays undefined
+                    memberFixedLengthExpression = this.parseExpression();
                 }
             }
-            const memberEntry: TypeMember = { name: memberNameToken.value, memberType: memberTypeToken.value, fixedLength: memberFixedLength };
+            const memberEntry: TypeMember = {
+                name: memberNameToken.value,
+                memberType: memberTypeToken.value,
+                fixedLength: memberFixedLength,
+                fixedLengthExpression: memberFixedLengthExpression,
+            };
             if (memberIsArray) {
                 memberEntry.isArray = true;
-                if (memberArrayBounds && memberArrayBounds.length > 0) memberEntry.arrayBounds = memberArrayBounds;
+                if (memberArrayBoundExpressions && memberArrayBoundExpressions.length > 0) {
+                    memberEntry.arrayBoundExpressions = memberArrayBoundExpressions;
+                    const numericBounds = memberArrayBoundExpressions.every((bound) =>
+                        bound.upper.type === 'NumberLiteral' && (!bound.lower || bound.lower.type === 'NumberLiteral'));
+                    if (numericBounds) {
+                        memberEntry.arrayBounds = memberArrayBoundExpressions.map((bound) => ({
+                            lower: bound.lower ? (bound.lower as NumberLiteral).value : 0,
+                            upper: (bound.upper as NumberLiteral).value,
+                        }));
+                    }
+                }
             }
             members.push(memberEntry);
 
