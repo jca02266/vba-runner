@@ -1,0 +1,16 @@
+- candidateId: FZ-DISCOVERY-20260920-DATE-009
+  evaluationId: EV-01048
+  status: verified-no-bug
+  occurredAt: '2026-09-19T22:24:17.992Z'
+- candidateId: FZ-DISCOVERY-20260920-DATE-009
+  evaluationId: EV-01048
+  status: in-progress
+  fromStatus: verified-no-bug
+  occurredAt: '2026-09-19T22:27:44.632Z'
+  rollbackFrom: verified-no-bug
+  rollbackReason: Excel/COMではなくVBA側のNullからDate ByRefへの期待エラー番号が未確定なため、verified-no-bugを撤回し実機確認待ちに戻す
+- candidateId: FZ-DISCOVERY-20260920-DATE-009
+  evaluationId: EV-01048
+  status: verified-no-bug
+  fromStatus: in-progress
+  occurredAt: '2026-09-19T22:28:59.568Z'
