@@ -3261,3 +3261,19 @@ checkpoints:
     nextEvaluation: EV-01048
     nextCandidate: FZ-DISCOVERY-20260920-DATE-009
     coverageSnapshot: COV-2026-09-20-discovery
+  - afterEvaluation: EV-01048
+    audit: "945 evaluations, 0 active claims; needs-excel 0件、bug-found 0件。NullのDate ByRef CallByName変換は型不一致13を返した"
+    decision: "独立レビューでNullエラー境界の記録整合を確認したうえで、Date ByValの通常呼出しとCallByNameの非書戻し経路を評価する"
+    action: claim
+    nextArea: "引数・ByRef・Property"
+    nextEvaluation: EV-01049
+    nextCandidate: FZ-DISCOVERY-20260920-DATE-010
+    coverageSnapshot: COV-2026-09-20-discovery
+  - afterEvaluation: EV-01049
+    audit: "946 evaluations, 0 active claims; needs-excel 0件、bug-found 0件。Date ByValの通常呼出しとCallByName非書戻しも一致した"
+    decision: "独立レビューで記録整合を確認し、今回のDate ByRef/ByVal探索で10回連続のverified-no-bugを達成したため評価ループを区切る"
+    action: stop
+    nextArea: "引数・ByRef・Property"
+    nextEvaluation: none
+    nextCandidate: none
+    coverageSnapshot: COV-2026-09-20-discovery
