@@ -946,6 +946,7 @@
 | EV-01043 | FZ-DISCOVERY-20260920 | verified-no-bug | 1 | Date ByRefを変更して返すClass FunctionのCallByName VbMethod |
 | EV-01044 | FZ-DISCOVERY-20260920 | verified-no-bug | 1 | Date Property Let/Getの通常呼出しラウンドトリップ |
 | EV-01045 | FZ-DISCOVERY-20260920 | verified-no-bug | 1 | Date Property Let/GetのCallByName VbLet/VbGetラウンドトリップ |
+| EV-01046 | FZ-DISCOVERY-20260920 | verified-no-bug | 1 | Date ByRef引数を括弧で渡した場合の一時値書戻し境界 |
 
 ## 状態集計
 
@@ -956,15 +957,14 @@
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
-| verified-no-bug | 509 |
+| verified-no-bug | 510 |
 
-横展開未解決経路: 627、実Excel待ち評価: 1
+横展開未解決経路: 628、実Excel待ち評価: 1
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-DISCOVERY-20260920-DATE-007 | 1 | queued | Date ByRef引数を括弧で渡した場合の一時値書戻し境界 | yes |
 | FZ-DISCOVERY-20260920-DATE-008 | 1 | queued | CallByName Date ByRefへのEmpty値変換と書戻し | yes |
 | FZ-DISCOVERY-20260920-DATE-009 | 1 | queued | CallByName Date ByRefへのNull値での型エラー伝播 | yes |
 | FZ-DISCOVERY-20260920-DATE-010 | 1 | queued | Date ByVal引数の通常呼出しとCallByNameにおける非書戻し | yes |

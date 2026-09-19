@@ -3245,3 +3245,11 @@ checkpoints:
     nextEvaluation: EV-01046
     nextCandidate: FZ-DISCOVERY-20260920-DATE-007
     coverageSnapshot: COV-2026-09-20-discovery
+  - afterEvaluation: EV-01046
+    audit: "943 evaluations, 0 active claims; needs-excel 0件、bug-found 0件。括弧付きDate ByRef CallByNameは呼出し元の値を保持した"
+    decision: "独立レビューで一時値契約を確認したうえで、Date ByRefへのEmpty値変換とCallByName経路を評価する"
+    action: claim
+    nextArea: "引数・ByRef・Property"
+    nextEvaluation: EV-01047
+    nextCandidate: FZ-DISCOVERY-20260920-DATE-008
+    coverageSnapshot: COV-2026-09-20-discovery
