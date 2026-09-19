@@ -942,6 +942,7 @@
 | EV-01039 | FZ-COVERAGE-20260823 | verified-no-bug |  | WithEvents購読者破棄後の発行元イベントとハンドラー解除 |
 | EV-01040 | FZ-DISCOVERY-20260920 | verified-no-bug | 1 | ClassのDate ByRef通常呼出しとCallByName VbMethodの書戻し一致 |
 | EV-01041 | FZ-DISCOVERY-20260920 | verified-no-bug | 1 | ClassのDate配列ByRef通常呼出しとCallByName VbMethodの要素書戻し |
+| EV-01042 | FZ-DISCOVERY-20260920 | verified-no-bug | 1 | Date ByRefを変更して返すClass Functionの通常呼出し |
 
 ## 状態集計
 
@@ -952,15 +953,14 @@
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
-| verified-no-bug | 505 |
+| verified-no-bug | 506 |
 
-横展開未解決経路: 623、実Excel待ち評価: 1
+横展開未解決経路: 624、実Excel待ち評価: 1
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| FZ-DISCOVERY-20260920-DATE-003 | 1 | queued | Date ByRefを変更して返すClass Functionの通常呼出し | yes |
 | FZ-DISCOVERY-20260920-DATE-004 | 1 | queued | Date ByRefを変更して返すClass FunctionのCallByName VbMethod | yes |
 | FZ-DISCOVERY-20260920-DATE-005 | 1 | queued | Date Property Let/Getの通常呼出しラウンドトリップ | yes |
 | FZ-DISCOVERY-20260920-DATE-006 | 1 | queued | Date Property Let/GetのCallByName VbLet/VbGetラウンドトリップ | yes |
