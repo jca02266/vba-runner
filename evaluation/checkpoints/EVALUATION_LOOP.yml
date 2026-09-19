@@ -3197,3 +3197,11 @@ checkpoints:
     nextEvaluation: null
     nextCandidate: RCA-LOCK-007
     coverageSnapshot: COV-2026-09-08-null-boundaries
+  - afterEvaluation: EV-01040
+    audit: "937 evaluations, 0 active claims; needs-excel 0件、bug-found 0件。Date ByRefの通常呼出しとCallByName経路は一致し、残存候補は同領域の隣接境界である"
+    decision: "独立レビューで未重複と確認されたDate配列ByRefの通常呼出しとCallByName VbMethodを次の評価対象にする"
+    action: claim
+    nextArea: "引数・ByRef・Property"
+    nextEvaluation: EV-01041
+    nextCandidate: FZ-DISCOVERY-20260920-DATE-002
+    coverageSnapshot: COV-2026-09-20-discovery

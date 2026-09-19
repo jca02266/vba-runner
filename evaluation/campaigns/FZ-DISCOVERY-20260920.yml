@@ -1,0 +1,108 @@
+id: FZ-DISCOVERY-20260920
+method: coverage-guided-discovery
+items:
+  - id: FZ-DISCOVERY-20260920-DATE-001
+    title: Date ByRef direct and CallByName method dispatch
+    status: queued
+    priority: 1
+    focus: ClassのDate ByRef通常呼出しとCallByName VbMethodの書戻し一致
+    sourceReview:
+      - src/engine/evaluator.ts
+      - tests/spec/callbyname.test.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/callbyname.test.ts
+  - id: FZ-DISCOVERY-20260920-DATE-002
+    title: Date array ByRef direct and CallByName dispatch
+    status: queued
+    priority: 1
+    focus: ClassのDate配列ByRef通常呼出しとCallByName VbMethodの要素書戻し
+    sourceReview:
+      - src/engine/evaluator.ts
+      - tests/spec/callbyname.test.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/callbyname.test.ts
+  - id: FZ-DISCOVERY-20260920-DATE-003
+    title: Date Function ByRef return direct dispatch
+    status: queued
+    priority: 1
+    focus: Date ByRefを変更して返すClass Functionの通常呼出し
+    sourceReview:
+      - src/engine/evaluator.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+  - id: FZ-DISCOVERY-20260920-DATE-004
+    title: Date Function ByRef return CallByName dispatch
+    status: queued
+    priority: 1
+    focus: Date ByRefを変更して返すClass FunctionのCallByName VbMethod
+    sourceReview:
+      - src/engine/evaluator.ts
+      - tests/spec/callbyname.test.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/callbyname.test.ts
+  - id: FZ-DISCOVERY-20260920-DATE-005
+    title: Date Property Let/Get direct round trip
+    status: queued
+    priority: 1
+    focus: Date Property Let/Getの通常呼出しラウンドトリップ
+    sourceReview:
+      - src/engine/evaluator.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+  - id: FZ-DISCOVERY-20260920-DATE-006
+    title: Date Property Let/Get CallByName round trip
+    status: queued
+    priority: 1
+    focus: Date Property Let/GetのCallByName VbLet/VbGetラウンドトリップ
+    sourceReview:
+      - src/engine/evaluator.ts
+      - tests/spec/callbyname.test.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/callbyname.test.ts
+  - id: FZ-DISCOVERY-20260920-DATE-007
+    title: Date ByRef parenthesized temporary
+    status: queued
+    priority: 1
+    focus: Date ByRef引数を括弧で渡した場合の一時値書戻し境界
+    sourceReview:
+      - src/engine/evaluator.ts
+      - tests/spec/callbyname.test.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+  - id: FZ-DISCOVERY-20260920-DATE-008
+    title: Date ByRef Empty conversion through CallByName
+    status: queued
+    priority: 1
+    focus: CallByName Date ByRefへのEmpty値変換と書戻し
+    sourceReview:
+      - src/engine/evaluator.ts
+      - src/engine/coerce.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/coerce.ts
+  - id: FZ-DISCOVERY-20260920-DATE-009
+    title: Date ByRef Null error propagation through CallByName
+    status: queued
+    priority: 1
+    focus: CallByName Date ByRefへのNull値での型エラー伝播
+    sourceReview:
+      - src/engine/evaluator.ts
+      - src/engine/coerce.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - src/engine/coerce.ts
+  - id: FZ-DISCOVERY-20260920-DATE-010
+    title: Date ByVal direct and CallByName non-writeback
+    status: queued
+    priority: 1
+    focus: Date ByVal引数の通常呼出しとCallByNameにおける非書戻し
+    sourceReview:
+      - src/engine/evaluator.ts
+      - tests/spec/callbyname.test.ts
+    coverageTargets:
+      - src/engine/evaluator.ts
+      - tests/spec/callbyname.test.ts

@@ -939,6 +939,8 @@
 | EV-01036 | FZ-COVERAGE-20260823 | verified-no-bug |  | Boolean ByRef引数の位置指定・名前付き指定 |
 | EV-01037 | FZ-COVERAGE-20260823 | verified-no-bug |  | Single ByRef引数の位置指定・名前付き指定 |
 | EV-01038 | FZ-COVERAGE-20260823 | verified-no-bug |  | ByRef直接参照・二重括弧一時値 |
+| EV-01039 | FZ-COVERAGE-20260823 | verified-no-bug |  | WithEvents購読者破棄後の発行元イベントとハンドラー解除 |
+| EV-01040 | FZ-DISCOVERY-20260920 | verified-no-bug | 1 | ClassのDate ByRef通常呼出しとCallByName VbMethodの書戻し一致 |
 
 ## 状態集計
 
@@ -949,12 +951,20 @@
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
-| verified-no-bug | 502 |
+| verified-no-bug | 504 |
 
-横展開未解決経路: 621、実Excel待ち評価: 1
+横展開未解決経路: 622、実Excel待ち評価: 1
 
 ## 次の候補
 
 | ID | 優先度 | 実効状態 | 対象 | coverage一致 |
 |---|---:|---|---|---|
-| (none) | | | | |
+| FZ-DISCOVERY-20260920-DATE-002 | 1 | queued | ClassのDate配列ByRef通常呼出しとCallByName VbMethodの要素書戻し | yes |
+| FZ-DISCOVERY-20260920-DATE-003 | 1 | queued | Date ByRefを変更して返すClass Functionの通常呼出し | yes |
+| FZ-DISCOVERY-20260920-DATE-004 | 1 | queued | Date ByRefを変更して返すClass FunctionのCallByName VbMethod | yes |
+| FZ-DISCOVERY-20260920-DATE-005 | 1 | queued | Date Property Let/Getの通常呼出しラウンドトリップ | yes |
+| FZ-DISCOVERY-20260920-DATE-006 | 1 | queued | Date Property Let/GetのCallByName VbLet/VbGetラウンドトリップ | yes |
+| FZ-DISCOVERY-20260920-DATE-007 | 1 | queued | Date ByRef引数を括弧で渡した場合の一時値書戻し境界 | yes |
+| FZ-DISCOVERY-20260920-DATE-008 | 1 | queued | CallByName Date ByRefへのEmpty値変換と書戻し | yes |
+| FZ-DISCOVERY-20260920-DATE-009 | 1 | queued | CallByName Date ByRefへのNull値での型エラー伝播 | yes |
+| FZ-DISCOVERY-20260920-DATE-010 | 1 | queued | Date ByVal引数の通常呼出しとCallByNameにおける非書戻し | yes |
