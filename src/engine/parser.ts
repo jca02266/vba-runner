@@ -123,6 +123,7 @@ export interface Parameter extends ASTNode {
     isArray?: boolean;
     paramType?: string;
     fixedLength?: number;
+    fixedLengthExpression?: Expression;
     defaultValue?: Expression;
 }
 
@@ -161,6 +162,8 @@ export interface VariableDeclarator {
     arrayEndColumn?: number;
     /** fixed-length string length: `Dim s As String * N` → fixedLength = N */
     fixedLength?: number;
+    /** Deferred constant-name used by a fixed-length String declaration. */
+    fixedLengthExpression?: Expression;
 }
 
 export interface VariableDeclaration extends Statement {
@@ -1050,6 +1053,7 @@ export class Parser {
 
         let paramType: string | undefined = suffixDerivedType;
         let paramFixedLength: number | undefined;
+        let paramFixedLengthExpression: Expression | undefined;
         if (this.match(TokenType.KeywordAs)) {
             const typeToken = this.peek();
             if (!this.isNameToken(typeToken)) {
@@ -1068,11 +1072,9 @@ export class Parser {
             // fixed-length-string-spec: `As String * N` (§5.2.3.1.4)
             if (paramType.toLowerCase() === 'string' && this.peek().type === TokenType.OperatorMultiply) {
                 this.advance(); // consume '*'
-                if (this.peek().type === TokenType.Number) {
-                    paramFixedLength = parseInt(this.advance().value, 10);
-                } else {
-                    this.advance(); // consume constant name; fixedLength stays undefined
-                }
+                const parsed = this.parseFixedStringLength();
+                paramFixedLength = parsed.fixedLength;
+                paramFixedLengthExpression = parsed.expression;
             }
         }
 
@@ -1082,7 +1084,7 @@ export class Parser {
         }
 
         return {
-            type: 'Parameter', name: parameterName, isByVal, hasPassingModifier, isOptional, isParamArray, isArray, paramType, fixedLength: paramFixedLength, defaultValue,
+            type: 'Parameter', name: parameterName, isByVal, hasPassingModifier, isOptional, isParamArray, isArray, paramType, fixedLength: paramFixedLength, fixedLengthExpression: paramFixedLengthExpression, defaultValue,
             loc: { start: { line: nameToken.line, column: nameToken.column }, end: { line: nameToken.line, column: nameToken.column + nameToken.value.length } },
         };
     }
@@ -2224,28 +2226,13 @@ export class Parser {
             let arrayEndColumn: number | undefined;
             if (this.match(TokenType.OperatorLParen)) {
                 isArray = true;
-                if (this.peek().type !== TokenType.OperatorRParen) {
-                    arrayBounds = [];
-                    while (true) {
-                        let lower: Expression | undefined;
-                        let upper = this.parseExpression();
-                        if (this.match(TokenType.KeywordTo)) {
-                            lower = upper;
-                            upper = this.parseExpression();
-                        }
-                        arrayBounds.push({ lower, upper });
-                        if (!this.match(TokenType.OperatorComma)) {
-                            break;
-                        }
-                    }
-                }
-                const rParenTok = this.peek();
-                if (this.match(TokenType.OperatorRParen)) {
-                    arrayEndColumn = rParenTok.column + 1; // 1-based column immediately after ')'
-                }
+                const parsed = this.parseArrayBoundsAfterOpenParen();
+                arrayBounds = parsed.bounds;
+                arrayEndColumn = parsed.rParen.column + 1; // 1-based column immediately after ')'
             }
 
             let fixedLength: number | undefined;
+            let fixedLengthExpression: Expression | undefined;
             if (this.match(TokenType.KeywordAs)) {
                 if (this.match(TokenType.KeywordNew)) {
                     isNew = true;
@@ -2270,14 +2257,9 @@ export class Parser {
                     // fixed-length-string-spec: "String" "*" string-length (§5.2.3.1.4)
                     if (objectType.toLowerCase() === 'string' && this.peek().type === TokenType.OperatorMultiply) {
                         this.advance(); // consume '*'
-                        const lenTok = this.peek();
-                        if (lenTok.type === TokenType.Number) {
-                            fixedLength = parseInt(this.advance().value, 10);
-                        } else if (this.isNameToken(lenTok)) {
-                            // constant-name: evaluate at parse time is not possible; store as undefined
-                            // and resolve in evaluator (defer like array bounds)
-                            this.advance(); // consume the constant name — fixedLength stays undefined
-                        }
+                        const parsed = this.parseFixedStringLength();
+                        fixedLength = parsed.fixedLength;
+                        fixedLengthExpression = parsed.expression;
                     }
                 } else {
                     this.throwError(`Parse error: Expected type name after 'As' at line ${typeToken.line}`);
@@ -2287,7 +2269,7 @@ export class Parser {
             // Apply suffix-derived type only when no explicit As clause was given.
             if (!objectType && suffixDerivedType) objectType = suffixDerivedType;
 
-            declarations.push({ name, isArray, arrayBounds, isNew, isWithEvents, objectType, objectTypeLoc, arrayEndColumn, fixedLength });
+            declarations.push({ name, isArray, arrayBounds, isNew, isWithEvents, objectType, objectTypeLoc, arrayEndColumn, fixedLength, fixedLengthExpression });
 
             if (this.match(TokenType.OperatorComma)) {
                 continue;
@@ -2453,21 +2435,7 @@ export class Parser {
             const bounds: ArrayBound[] = [];
 
             if (this.match(TokenType.OperatorLParen)) {
-                if (this.peek().type !== TokenType.OperatorRParen) {
-                    while (true) {
-                        let lower: Expression | undefined;
-                        let upper = this.parseExpression();
-                        if (this.match(TokenType.KeywordTo)) {
-                            lower = upper;
-                            upper = this.parseExpression();
-                        }
-                        bounds.push({ lower, upper });
-                        if (!this.match(TokenType.OperatorComma)) {
-                            break;
-                        }
-                    }
-                }
-                this.match(TokenType.OperatorRParen);
+                bounds.push(...(this.parseArrayBoundsAfterOpenParen().bounds ?? []));
             }
 
             let objectType: string | undefined;
@@ -2512,19 +2480,7 @@ export class Parser {
             if (this.peek().type === TokenType.OperatorLParen) {
                 memberIsArray = true;
                 this.advance(); // consume '('
-                if (this.peek().type !== TokenType.OperatorRParen) {
-                    memberArrayBoundExpressions = [];
-                    do {
-                        let lower: Expression | undefined;
-                        let upper = this.parseExpression();
-                        if (this.match(TokenType.KeywordTo)) {
-                            lower = upper;
-                            upper = this.parseExpression();
-                        }
-                        memberArrayBoundExpressions.push({ lower, upper });
-                    } while (this.match(TokenType.OperatorComma));
-                }
-                this.match(TokenType.OperatorRParen); // consume ')'
+                memberArrayBoundExpressions = this.parseArrayBoundsAfterOpenParen().bounds;
             }
 
             if (!this.match(TokenType.KeywordAs)) {
@@ -2540,13 +2496,9 @@ export class Parser {
             let memberFixedLengthExpression: Expression | undefined;
             if (memberTypeToken.value.toLowerCase() === 'string' && this.peek().type === TokenType.OperatorMultiply) {
                 this.advance(); // consume '*'
-                const lenTok = this.peek();
-                if (lenTok.type === TokenType.Number) {
-                    memberFixedLengthExpression = this.parseExpression();
-                    memberFixedLength = (memberFixedLengthExpression as NumberLiteral).value;
-                } else if (this.isNameToken(lenTok)) {
-                    memberFixedLengthExpression = this.parseExpression();
-                }
+                const parsed = this.parseFixedStringLength();
+                memberFixedLength = parsed.fixedLength;
+                memberFixedLengthExpression = parsed.expression;
             }
             const memberEntry: TypeMember = {
                 name: memberNameToken.value,
@@ -2582,6 +2534,48 @@ export class Parser {
         }
 
         return { type: 'TypeDeclaration', name: typeName, members } as TypeDeclaration;
+    }
+
+    /** Parse the shared array-dimension grammar after the opening parenthesis. */
+    private parseArrayBoundsAfterOpenParen(): { bounds?: ArrayBound[]; rParen: Token } {
+        const bounds: ArrayBound[] = [];
+        if (this.peek().type !== TokenType.OperatorRParen) {
+            do {
+                let lower: Expression | undefined;
+                let upper = this.parseExpression();
+                if (this.match(TokenType.KeywordTo)) {
+                    lower = upper;
+                    upper = this.parseExpression();
+                }
+                bounds.push({ lower, upper });
+            } while (this.match(TokenType.OperatorComma));
+        }
+        const rParen = this.consume(TokenType.OperatorRParen, "Expected ')' after array bounds");
+        return { bounds: bounds.length > 0 ? bounds : undefined, rParen };
+    }
+
+    /** Parse fixed-length-string-spec's restricted `constant-name / INTEGER`. */
+    private parseFixedStringLength(): { fixedLength?: number; expression: Expression } {
+        const token = this.peek();
+        let expression: Expression;
+        if (token.type === TokenType.Number) {
+            this.advance();
+            expression = this.parseNumericLiteral(token.value);
+        } else if (this.isNameToken(token)) {
+            this.advance();
+            expression = this.makeIdentifier(token);
+        } else {
+            this.throwError(`Parse error: Expected integer or constant name after '*' at line ${token.line}`);
+        }
+        expression.loc = {
+            start: { line: token.line, column: token.column },
+            end: { line: token.line, column: token.column + token.value.length },
+        };
+        return {
+            fixedLength: expression.type === 'NumberLiteral'
+                ? (expression as NumberLiteral).value : undefined,
+            expression,
+        };
     }
 
     private parseEnumDeclaration(): EnumDeclaration {

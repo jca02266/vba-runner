@@ -235,4 +235,31 @@ End Function
     console.log('[PASS] Bug CH: String * N パラメーターが切り詰め・パディングを正しく適用する');
 }
 
+// Constant-name lengths are declaration metadata and must survive parsing for
+// ordinary variables and procedure parameters, not only UDT members.
+{
+    const code = String.raw`Const FIXED_LENGTH As Double = 2.5
+Function ContentOf(value As String * FIXED_LENGTH) As String
+    Dim localValue As String * FIXED_LENGTH
+    localValue = value
+    ContentOf = CStr(Len(localValue)) & ":" & localValue
+End Function`;
+    assert.strictEqual(evalVBASingle(code).callProcedure('ContentOf', ['ABCDE']), '2:AB',
+        'constant-name fixed lengths use shared Long coercion for parameters and variables');
+    console.log('[PASS] String * Const is preserved and resolved');
+}
+
+{
+    assert.throwsMatch(
+        () => evalVBASingle(String.raw`Const FIXED_LENGTH As Integer = 2
+Function RunCase() As Long
+    Dim value As String * FIXED_LENGTH + 1
+    RunCase = Len(value)
+End Function`),
+        /Parse error|Expected/,
+        'fixed-length String accepts constant-name or INTEGER, not an arbitrary expression',
+    );
+    console.log('[PASS] String length expression outside grammar rejected');
+}
+
 console.log('\n✅ 固定長文字列（String * N）: 全テスト通過');

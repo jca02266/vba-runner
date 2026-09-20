@@ -1179,6 +1179,9 @@ export class Evaluator {
         let propertyValueTailValue: any;
         for (let i = 0; i < proc.parameters.length; i++) {
             const param = proc.parameters[i];
+            if (param.fixedLengthExpression) {
+                param.fixedLength = this.resolveFixedStringLength(param.fixedLengthExpression);
+            }
             const paramName = param.name;
             if (param.isParamArray) {
                 const hasPropertyValueTail = isPropertyValueParameter(proc, i + 1);
@@ -5510,6 +5513,9 @@ export class Evaluator {
     private evaluateVariableDeclaration(stmt: VariableDeclaration) {
         const isStaticDecl = stmt.isStatic || this.currentProcIsStatic;
         for (const decl of stmt.declarations) {
+            if (decl.fixedLengthExpression) {
+                decl.fixedLength = this.resolveFixedStringLength(decl.fixedLengthExpression);
+            }
             const varName = decl.name.name;
             if (decl.isWithEvents) {
                 this.env.setWithEvents(varName);
@@ -5723,32 +5729,76 @@ export class Evaluator {
         }
     }
 
+    /** Coerce an array-bound value through VBA's Long Let-coercion contract. */
+    private coerceArrayBoundToLong(value: any, compileTime: boolean, line?: number): number {
+        try {
+            const result = _vbaRound(_vbaToNumber(value));
+            if (result < -2147483648 || result > 2147483647) {
+                if (compileTime) this.throwCompileError(VbaErrorCode.OVERFLOW, 'Overflow', line);
+                this.throwVbaError(VbaErrorCode.OVERFLOW, 'Overflow');
+            }
+            return result;
+        } catch (error: any) {
+            if (error?._precheckRaw) throw error;
+            const code = error?.number ?? VbaErrorCode.TYPE_MISMATCH;
+            const message = error?.message ?? VBA_ERROR_MESSAGES[code] ?? 'Type mismatch';
+            if (compileTime) this.throwCompileError(code, message, line);
+            this.throwVbaError(code, message);
+        }
+    }
+
+    /** Resolve one shared array-bound AST into concrete VBA Long dimensions. */
+    private resolveArrayBoundDimensions(
+        bounds: ArrayBound[],
+        defaultLower: number,
+        compileTime: boolean,
+    ): { lower: number; upper: number }[] {
+        return bounds.map((bound) => {
+            if (compileTime) {
+                this.validateConstantExpr(bound.upper);
+                if (bound.lower) this.validateConstantExpr(bound.lower);
+            }
+            const evaluate = compileTime
+                ? (expr: Expression) => this.evaluateConstValue(expr)
+                : (expr: Expression) => this.evaluateExpression(expr);
+            const upper = this.coerceArrayBoundToLong(evaluate(bound.upper), compileTime, bound.upper.loc?.start.line);
+            const lower = bound.lower
+                ? this.coerceArrayBoundToLong(evaluate(bound.lower), compileTime, bound.lower.loc?.start.line)
+                : defaultLower;
+            if (lower > upper) {
+                if (compileTime) {
+                    this.throwCompileError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE,
+                        'Subscript out of range', bound.upper.loc?.start.line);
+                }
+                this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
+            }
+            return { lower, upper };
+        });
+    }
+
     /** Resolve deferred constant expressions used by UDT member declarations. */
-    private resolveTypeMemberConstants(stmt: TypeDeclaration): void {
+    private resolveTypeMemberConstants(stmt: TypeDeclaration, defaultLower: number): void {
         for (const member of stmt.members) {
             if (member.arrayBoundExpressions?.length) {
-                const bounds: { lower: number; upper: number }[] = [];
-                for (const bound of member.arrayBoundExpressions) {
-                    this.validateConstantExpr(bound.upper);
-                    if (bound.lower) this.validateConstantExpr(bound.lower);
-                    const upper = Number(this.evaluateConstValue(bound.upper));
-                    const lower = bound.lower ? Number(this.evaluateConstValue(bound.lower)) : 0;
-                    if (!Number.isInteger(lower) || !Number.isInteger(upper) || lower > upper) {
-                        this.throwCompileError(VbaErrorCode.CONSTANT_EXPRESSION_REQUIRED, 'Invalid array bound');
-                    }
-                    bounds.push({ lower, upper });
-                }
-                member.arrayBounds = bounds;
+                member.arrayBounds = this.resolveArrayBoundDimensions(
+                    member.arrayBoundExpressions, defaultLower, true);
             }
             if (member.fixedLengthExpression) {
-                this.validateConstantExpr(member.fixedLengthExpression);
-                const length = Number(this.evaluateConstValue(member.fixedLengthExpression));
-                if (!Number.isInteger(length) || length < 1) {
-                    this.throwCompileError(VbaErrorCode.CONSTANT_EXPRESSION_REQUIRED, 'Invalid string length');
-                }
-                member.fixedLength = length;
+                member.fixedLength = this.resolveFixedStringLength(member.fixedLengthExpression);
             }
         }
+    }
+
+    /** Resolve the shared fixed-length String declaration contract. */
+    private resolveFixedStringLength(expression: Expression): number {
+        this.validateConstantExpr(expression);
+        const length = this.coerceArrayBoundToLong(
+            this.evaluateConstValue(expression), true, expression.loc?.start.line);
+        if (length < 1 || length > 65526) {
+            this.throwCompileError(VbaErrorCode.CONSTANT_EXPRESSION_REQUIRED,
+                'Invalid string length', expression.loc?.start.line);
+        }
+        return length;
     }
 
     private evaluateOptionCompareStatement(stmt: OptionCompareStatement) {
@@ -5847,6 +5897,9 @@ export class Evaluator {
         // Initialize public/private fields with default values
         for (const fieldDecl of classDef.fields) {
             for (const decl of fieldDecl.declarations) {
+                if (decl.fixedLengthExpression) {
+                    decl.fixedLength = this.resolveFixedStringLength(decl.fixedLengthExpression);
+                }
                 let defaultVal: any = vbaEmpty;
                 const mt = (decl.objectType || '').toLowerCase();
                 // Dim 変数の既定値判定（evaluateVariableDeclaration）と同じ型集合に揃える。
@@ -6924,13 +6977,24 @@ export class Evaluator {
         for (const { ast, moduleName } of modules) {
             const prev = this.currentSourceModule;
             this.currentSourceModule = moduleName;
+            const moduleArrayBase = (() => {
+                for (const stmt of ast.body) {
+                    if (stmt.type === 'OptionBaseStatement') return (stmt as OptionBaseStatement).base;
+                    if (stmt.type === 'ClassDeclaration') {
+                        const option = (stmt as ClassDeclaration).body.find(
+                            member => member.type === 'OptionBaseStatement') as OptionBaseStatement | undefined;
+                        if (option) return option.base;
+                    }
+                }
+                return 0;
+            })();
             for (const stmt of ast.body) {
                 if (stmt.type === 'TypeDeclaration') {
-                    this.resolveTypeMemberConstants(stmt as TypeDeclaration);
+                    this.resolveTypeMemberConstants(stmt as TypeDeclaration, moduleArrayBase);
                 } else if (stmt.type === 'ClassDeclaration') {
                     for (const member of (stmt as ClassDeclaration).body) {
                         if (member.type === 'TypeDeclaration') {
-                            this.resolveTypeMemberConstants(member as TypeDeclaration);
+                            this.resolveTypeMemberConstants(member as TypeDeclaration, moduleArrayBase);
                         }
                     }
                 }
@@ -7151,8 +7215,9 @@ export class Evaluator {
      * 他モジュールの Public Const はグローバルトポロジカルソートにより評価済みなので参照可能。
      */
     private resolveConstIdent(name: string): any {
-        const moduleEnv = this.currentSourceModule
-            ? this.getOrCreateModuleEnv(this.currentSourceModule)
+        const ownerModule = this.currentSourceModule || this.executingModuleName;
+        const moduleEnv = ownerModule
+            ? this.getOrCreateModuleEnv(ownerModule)
             : undefined;
         const val = moduleEnv?.getConst(name.toLowerCase()) ?? this.env.getConst(name.toLowerCase());
         if (val === undefined) {
@@ -7185,9 +7250,12 @@ export class Evaluator {
         const name = decl.name.name;
         if (!this.currentProcedureName && this.currentSourceModule) {
             const modName = this.currentSourceModule;
-            if (scope === 'private') {
-                this.getOrCreateModuleEnv(modName).setConstant(name, value);
-            } else {
+            // Every module-level Const has a module-owned identity. Public and
+            // Friend constants are additionally published through the shared
+            // environment, but unqualified references in their own module
+            // must never be redirected by another module's same-named Const.
+            this.getOrCreateModuleEnv(modName).setConstant(name, value);
+            if (scope !== 'private') {
                 this.env.setConstant(name, value);
             }
             this.env.setConstant(`${modName}:${name}`, value);
@@ -9653,9 +9721,42 @@ export class Evaluator {
                 return;
             case 'Identifier': {
                 const name = (expr as Identifier).name;
-                if (!this.env.isConstant(name.toLowerCase())) {
+                const ownerModule = this.currentSourceModule || this.executingModuleName;
+                const moduleEnv = ownerModule
+                    ? this.getOrCreateModuleEnv(ownerModule)
+                    : undefined;
+                if (!moduleEnv?.isConstant(name.toLowerCase())
+                    && !this.env.isConstant(name.toLowerCase())) {
                     this.throwCompileError(VbaErrorCode.CONSTANT_EXPRESSION_REQUIRED, 'Constant expression required', expr.loc?.start.line);
                 }
+                return;
+            }
+            case 'MemberExpression': {
+                const member = expr as MemberExpression;
+                if (member.object.type === 'Identifier') {
+                    const owner = (member.object as Identifier).name.toLowerCase();
+                    const name = member.property.name.toLowerCase();
+                    if (this.moduleConstScopes.has(`${owner}:${name}`)) return;
+                    const enumValue = this.env.getConst(owner);
+                    if (enumValue && typeof enumValue === 'object'
+                        && Object.keys(enumValue).some(key => key.toLowerCase() === name)) return;
+                }
+                this.throwCompileError(VbaErrorCode.CONSTANT_EXPRESSION_REQUIRED,
+                    'Constant expression required', expr.loc?.start.line);
+            }
+            case 'CallExpression': {
+                const call = expr as CallExpression;
+                const allowed = new Set([
+                    'int', 'fix', 'abs', 'sgn', 'len', 'lenb', 'cbool', 'cbyte',
+                    'ccur', 'cdate', 'cdbl', 'cint', 'clng', 'clnglng',
+                    'clngptr', 'csng', 'cstr', 'cvar',
+                ]);
+                if (call.callee.type !== 'Identifier'
+                    || !allowed.has((call.callee as Identifier).name.toLowerCase())) {
+                    this.throwCompileError(VbaErrorCode.CONSTANT_EXPRESSION_REQUIRED,
+                        'Constant expression required', expr.loc?.start.line);
+                }
+                for (const argument of call.args) this.validateConstantExpr(argument);
                 return;
             }
             case 'UnaryExpression':
@@ -9674,20 +9775,12 @@ export class Evaluator {
     }
 
     private createMultiDimArray(bounds: ArrayBound[], initialValue: any): any[] {
-        const dimensions: { lower: number, upper: number }[] = [];
-
-        for (const bound of bounds) {
-            const upper = Number(this.evaluateExpression(bound.upper));
-            const lower = bound.lower ? Number(this.evaluateExpression(bound.lower)) : this.arrayBase;
-            dimensions.push({ lower, upper });
-        }
+        const dimensions = this.resolveArrayBoundDimensions(bounds, this.arrayBase, false);
 
         // VBA index と JS index を一致させるため、length = upper + 1 の配列を作り、
         // [0]〜[lower-1] は undefined、[lower]〜[upper] を initialValue で埋める。
         const buildArray = (dimIdx: number): any[] => {
             const { lower, upper } = dimensions[dimIdx];
-            if (upper < lower - 1) this.throwVbaError(VbaErrorCode.SUBSCRIPT_OUT_OF_RANGE, 'Subscript out of range');
-
             const totalSize = upper + 1;
             const arr = new Array(totalSize);
             if (dimIdx < dimensions.length - 1) {
