@@ -1,0 +1,9 @@
+- candidateId: FZ-DISCOVERY-20260920-UDT-003
+  evaluationId: EV-01052
+  status: bug-found
+  occurredAt: '2026-09-20T22:23:04.877Z'
+- candidateId: FZ-DISCOVERY-20260920-UDT-003
+  evaluationId: EV-01052
+  status: fixed
+  fromStatus: bug-found
+  occurredAt: '2026-09-20T22:29:59.768Z'

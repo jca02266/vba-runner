@@ -2,3 +2,8 @@
   evaluationId: EV-01050
   status: bug-found
   occurredAt: '2026-09-19T23:01:22.062Z'
+- candidateId: FZ-DISCOVERY-20260920-UDT-001
+  evaluationId: EV-01050
+  status: fixed
+  fromStatus: bug-found
+  occurredAt: '2026-09-20T22:29:56.982Z'

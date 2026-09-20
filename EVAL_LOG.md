@@ -950,19 +950,24 @@
 | EV-01047 | FZ-DISCOVERY-20260920 | verified-no-bug | 1 | CallByNameのDate ByRef引数へEmptyを渡す変換境界 |
 | EV-01048 | FZ-DISCOVERY-20260920 | verified-no-bug | 1 | CallByNameのDate ByRef引数へNullを渡した場合の型エラー伝播 |
 | EV-01049 | FZ-DISCOVERY-20260920 | verified-no-bug | 1 | Date ByVal引数の通常呼出しとCallByNameにおける非書戻し |
+| EV-01050 | FZ-DISCOVERY-20260920 | fixed | 1 | UDTメンバー配列の上限にConst名を使う宣言の解析 |
+| EV-01051 | FZ-DISCOVERY-20260920 | fixed |  | UDTメンバー配列の下限省略時にOption Baseを適用する境界 |
+| EV-01052 | FZ-DISCOVERY-20260920 | fixed |  | UDTメンバー配列境界での修飾Const可視性 |
+| EV-01053 | FZ-DISCOVERY-20260920 | fixed |  | UDTメンバー配列境界のLongへのLet-coercion |
+| EV-01054 | FZ-DISCOVERY-20260920 | fixed |  | 通常変数と引数の固定長StringでConst名を保持して解決する経路 |
 
 ## 状態集計
 
 | 状態 | 件数 |
 |---|---:|
-| fixed | 423 |
+| fixed | 428 |
 | in-progress | 2 |
 | known-limit | 5 |
 | needs-excel-probe | 1 |
 | retired | 2 |
 | verified-no-bug | 513 |
 
-横展開未解決経路: 631、実Excel待ち評価: 1
+横展開未解決経路: 632、実Excel待ち評価: 1
 
 ## 次の候補
 

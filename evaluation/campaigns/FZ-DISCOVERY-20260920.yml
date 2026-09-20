@@ -139,3 +139,25 @@ items:
       - src/engine/parser.ts
     coverageTargets:
       - src/engine/evaluator.ts
+  - id: FZ-DISCOVERY-20260920-UDT-004
+    title: UDT member bound Long coercion
+    status: queued
+    priority: 2
+    focus: UDTメンバー配列境界のLongへのLet-coercion
+    sourceReview:
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/evaluator.ts
+  - id: FZ-DISCOVERY-20260920-UDT-005
+    title: Fixed String constant-name preservation
+    status: queued
+    priority: 2
+    focus: 通常変数と引数の固定長StringでConst名を保持して解決する経路
+    sourceReview:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
+      - spec/MS-VBAL.txt
+    coverageTargets:
+      - src/engine/parser.ts
+      - src/engine/evaluator.ts
