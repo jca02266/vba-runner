@@ -2,6 +2,20 @@
 
 All notable changes to the `vba-runner` npm package are documented here.
 
+## [0.1.1-alpha.25] - 2026-09-23
+
+### Fixed
+
+- **Real-VBA engine compatibility updates** — UDT member array bounds now
+  honor the declaring module's `Option Base`, resolve constants in the owning
+  module, and apply VBA `Long` coercion before allocating the array.
+- **Real-VBA engine compatibility updates** — qualified public constants and
+  permitted intrinsic and Enum constants now work in UDT member bounds, while
+  inaccessible private constants remain rejected.
+- **Fixed-length strings** — constant names in `String * N` declarations now
+  resolve for variables, procedure parameters, and UDT members with the same
+  length coercion rules.
+
 ## [0.1.1-alpha.24] - 2026-09-15
 
 ### Fixed
