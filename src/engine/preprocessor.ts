@@ -266,7 +266,7 @@ export function stripVBAFileHeader(source: string): string {
     // Skip blank lines between VERSION and BEGIN.
     while (i < result.length && result[i].trim() === '') i++;
     // Only strip the BEGIN/END attribute block when it is present.
-    if (i < result.length && result[i].trimEnd().toUpperCase() === 'BEGIN') {
+    if (i < result.length && /^BEGIN(\s|$)/i.test(result[i].trim())) {
         result[i] = '';
         i++;
         while (i < result.length) {
